@@ -43,6 +43,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         this.makeControls()
         this.initStarterLoops()
         this.scene.add.existing(this);
+        Transport.set({swing: .1})
     }
     initStarterLoops() {
         Object.keys(starterLoops).forEach(eachKey => {
@@ -66,14 +67,14 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
             return eachOne.passed === true
         })
         if(totalCheck.length > 0){
-            let name = prompt("Saved Pattern Name: ");
+            let name = prompt("Saved Pattern Name: (less than 25 chars) ");
             if (name) {
                 this.savedSeq = this.pads.map((eachPad) => {
                     return {
                         seqData: eachPad.getSequence()
                     }
                 })
-                localStorage.setItem(`PATTERN_${name}`, JSON.stringify(this.savedSeq))
+                localStorage.setItem(`PATTERN_${name.substring(0,24)}`, JSON.stringify(this.savedSeq))
             }
         } else {
             this.helpText.setText("You must first edit the pattern to save it")
@@ -101,7 +102,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         )
     }
     makeControls() {
-        let bg = this.scene.add.rectangle(this.x, this.y, 410, this.samples.length * 40, 0xc1c1c1, 1)
+        let bg = this.scene.add.rectangle(this.x, this.y, 410, this.samples.length * 40, 0xc1c1c1, .5)
             .setDepth(1).setOrigin(0).setStrokeStyle(1, 0x000000, 1)
         let border = this.scene.add.rectangle(this.x + 5, this.y + 5, 400, 40, generateColor(), 1).setDepth(2).setOrigin(0).setStrokeStyle(1, 0x000000, 1)
         let ySpace = 40
@@ -115,7 +116,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
             .setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
             .on("pointerdown", () => {
                 this.playButton.setFillStyle(generateColor(), 1)
-                Transport.state === "started" ? Transport.stop() : Transport.start();
+                Transport.state === "started" ? Transport.stop() : Transport.start()
             })
             .on('pointerover', () => {
                 this.helpText.setText("Start / Stop Transport")
@@ -124,6 +125,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
                 this.helpText.setText("")
             })
 
+            
 
         this.delayControl = this.scene.add.rectangle(this.x + 350, this.y + 15, 20, 20, generateColor(), 1).setDepth(2).setOrigin(0).setStrokeStyle(1, 0x000000, .25)
             .setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
@@ -220,13 +222,13 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
                 
             })
             .on('pointerover', () => {
-                this.helpText.setText("Click to Load Patterns")
+                this.helpText.setText("Click to toggle Patterns")
             })
             .on('pointerout', () => {
                 this.helpText.setText("")
             })
 
-        this.metronome = new Metronome(this.scene, this.x + 410, this.y + 5, 120, 25, 100, this.helpText);
+        this.metronome = new Metronome(this.scene, this.x + 410, this.y + 5, 110, 25, 100, this.helpText);
         // guidelines for measures
         this.scene.add.line(this.x, this.y, this.x + 192, this.y + 30, this.x + 192, this.y + 390, 0x000000, 1)
             .setDepth(2).setOrigin(0).setStrokeStyle(1, 0xff0000, .25)

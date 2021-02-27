@@ -23,12 +23,19 @@ export default class DrumPad extends Phaser.GameObjects.Container {
         this.helpText = helpText ? helpText : null
         this.scene.add.existing(this);
         this.verb = new Reverb(.5).toDestination()
-        this.sound = new Player(sound).toDestination().chain(this.verb)
-        this.makePadControl();
-        this.makeSequenceControls();
-        this.makeSequence();
-        
 
+        this.sound = new Player().toDestination().chain(this.verb)
+        this.loadSound(sound).then((result)=>{
+            if(this.sound.loaded){
+                this.makePadControl();
+                this.makeSequenceControls();
+                this.makeSequence();
+            }
+        })
+
+    }
+    async loadSound(sound: string){
+        return await this.sound.load(sound)
     }
     initSeqArray() {
         var arr = [];
@@ -56,13 +63,14 @@ export default class DrumPad extends Phaser.GameObjects.Container {
     makeSequence() {
         let self = this.scene;
         let i = 0
+        
         this.mainSeq = new Loop((time) => {
 
             if (!this.muted) {
                 if (this.sequence[i]) {
                     this.sound.start(time);
                     this.hitSeqCircle(i, self);
-                    this.makeBubble(this.x+ 50, this.y + 395, self)
+                    this.makeBubble(this.x+ 100, this.y + 300, self)
                 } else {
                     this.hitSeqOffBeats(i, self)
 
@@ -74,9 +82,7 @@ export default class DrumPad extends Phaser.GameObjects.Container {
                 }
             }
 
-        }, '16n').start(now());
-
-    
+        }, '16n').start(Transport.now());
     }
     setAllSeqStepsOnOrOff() {
         if (this.allSelected) {
