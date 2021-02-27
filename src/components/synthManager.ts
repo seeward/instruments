@@ -25,9 +25,11 @@ export default class SynthManager extends Phaser.GameObjects.Container {
     _synths: any = []
     _raw_synth_json: SynthWrapper[]
     _currentSynth: AMSynth | FMSynth | NoiseSynth | MembraneSynth | MonoSynth | DuoSynth
+    helpText: Phaser.GameObjects.Text
 
-    constructor(scene: Phaser.Scene, x: number, y: number) {
+    constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
+        this.helpText = helpText ? helpText : null
         this.getSavedSynths()
         // this.addSynthJSONControl()
     }
@@ -95,6 +97,8 @@ export default class SynthManager extends Phaser.GameObjects.Container {
     initaliseSynths() {
         this._raw_synth_json.forEach((eachSynth: SynthWrapper) => {
             console.log(`Init: ${eachSynth.type}`)
+            
+            
             if(eachSynth.type !== undefined){
                 let ty = this.convertStringToEnum(eachSynth.type)
                 let pl = this.getSynthPlayer(ty)

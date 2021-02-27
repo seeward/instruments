@@ -7,28 +7,19 @@ import CustomRecorder from '../components/recorder';
 import CustomSampler from '../components/sampler';
 import DrumMachine from '../components/drumMachine';
 
-let flag = true;
 export default class DashboardScene extends Phaser.Scene {
 
     recorder: CustomRecorder
-    percgroove: Player
-    electronicgroove: Player
-    currentLoop: Player
-    hiphopgroove: Player
-    flute: any;
     synth: any;
     keys: KeyBoard
-    drums: Drums
     sampler: CustomSampler;
     drumMachine: DrumMachine;
+    helpText: Phaser.GameObjects.Text;
 
     constructor() {
-        super({ key: "DashboardScene" });
-        
+        super({ key: "DashboardScene" });   
     }
-    preload(){
 
-    }
     startMic(t) {
         const meter = new Meter();
         t.mic = new UserMedia().chain(meter);
@@ -57,39 +48,8 @@ export default class DashboardScene extends Phaser.Scene {
             });
     }
     loadSounds(t) {
-
         t.recorder = new Recorder();
         const dist = new Distortion(1).toDestination();
-
-
-        this.hiphopgroove = new Player({
-            loop: true,
-            volume: 0,
-            url:
-                "https://cdn.glitch.com/7c3193f6-becc-4a24-9436-33921e31dde6%2Fhiphopgroove.mp3"
-        })
-            .toDestination()
-            .chain(dist, t.recorder);
-        
-        this.electronicgroove = new Player({
-            url:
-                "https://cdn.glitch.com/7c3193f6-becc-4a24-9436-33921e31dde6%2Felectronicgroove.mp3",
-            loop: true,
-            volume: 0
-        })
-            .toDestination()
-            .connect(t.recorder)
-
-        this.percgroove = new Player({
-            url:
-                "https://cdn.glitch.com/7c3193f6-becc-4a24-9436-33921e31dde6%2Fpercgroove.mp3",
-            loop: true,
-            volume: 0
-        })
-            .toDestination()
-            .connect(t.recorder);
-
-
     }
 
     create() {
@@ -100,29 +60,33 @@ export default class DashboardScene extends Phaser.Scene {
         let bg1 = this.add.rectangle(0,0,1280,720, 0xffffff,0).setStrokeStyle(10,0x000000,1).setOrigin(0)
         let footer = this.add.rectangle(0,600, 1280, 150, 0x000000,1).setOrigin(0).setDepth(1)
         let footer2 = this.add.rectangle(5,605, 1270, 110, generateColor(),1).setOrigin(0).setDepth(1)
-        this.add.text(25,630, "k3yb00rD", { fontSize: '75px', color: '#000000'}).setDepth(2)
+        this.add.text(25,630, "l00pSt@ti0n", { fontSize: '75px', color: '#000000'}).setDepth(3)
+
+        this.helpText = this.add.text(550, 645, "", { fontSize: '28px', color: '#000000'}).setDepth(2)
+
         const delay = new Delay('16n').toDestination();
         this.synth = new FMSynth({volume: -20}).toDestination()
-        let u = this.add.rectangle(12,4120,1255,695, 0xffffff,.75).setOrigin(0).setStrokeStyle(3,0x000000,1).setDepth(1)
-        let y = this.add.rectangle(450,140,800,275, 0xffffff,1).setOrigin(0).setStrokeStyle(3,0x000000,1).setDepth(1)
-        // this.sampler = new CustomSampler(this, 700,45);
-        this.recorder = new CustomRecorder(this, 525, 150,50,50).setDepth(2)
-        // this.drums = new Drums(this, 170,155, this.recorder);
+        // let u = this.add.rectangle(12,4120,1255,695, 0xffffff,.75).setOrigin(0).setStrokeStyle(3,0x000000,1).setDepth(1)
+        // let y = this.add.rectangle(450,140,800,275, 0xffffff,1).setOrigin(0).setStrokeStyle(3,0x000000,1).setDepth(1)
+        
+        
+        this.recorder = new CustomRecorder(this, 525, 150,50,50, this.helpText).setDepth(2)
 
-        this.drumMachine = new DrumMachine(this, 10,25);
-        this.keys = new KeyBoard(this, 500, 175, this.recorder, delay, this.synth).setDepth(1)
-        let handler = ()=>{
-            
+        this.drumMachine = new DrumMachine(this, 10,25, this.helpText);
+        this.keys = new KeyBoard(this, 500, 175, this.recorder, delay, this.synth, this.helpText).setDepth(1)
+        let handler = () => {
+            // play note so far it can't be heard
             this.synth.triggerAttackRelease('C1', .001)
+            // remove this handler to save memory 
             document.removeEventListener('click', handler, false)
         }
-        document.addEventListener('click',handler )
+        // this is to enable web audio when page is clicked
+        document.addEventListener('click', handler)
     }
 
     update() {
         
         this.keys.update()
-        // this.sampler.update()
         this.drumMachine.update()
     }
 }

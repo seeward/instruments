@@ -13,9 +13,11 @@ export default class Metronome extends Phaser.GameObjects.Container {
     width: number = 100
     height: number = 100
     tooltip: Phaser.GameObjects.Text;
+    helpText: Phaser.GameObjects.Text;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, bpm?: number, width?:number, height?: number) {
+    constructor(scene: Phaser.Scene, x: number, y: number, bpm?: number, width?:number, height?: number, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
+        this.helpText = helpText ? helpText : null
         if (bpm) {
             this.bpm = bpm
             Transport.bpm.value = this.bpm;
@@ -31,16 +33,23 @@ export default class Metronome extends Phaser.GameObjects.Container {
     addBPMControl() {
         this.tooltip = this.scene.add.text(this.x - 90, this.y + 135, '', { color: '#000000', fontSize: '12px' }).setOrigin(0).setDepth(1)
         this.slider = this.scene.add.ellipse(this.x + this.width - 10, this.y + this.height, 25, 25, 0x000000, 1).setDepth(1)
-            .setInteractive({ useHandCursor: true, draggable: true }).setOrigin(0)
+            .setInteractive({ useHandCursor: true, draggable: true }).setOrigin(0).setDepth(3)
             .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
                 // console.log(dragY);
                 this.slider.y = pointer.position.y < this.y + this.height ? pointer.position.y : this.y + this.height
                 this.bpm = this.convertPointerToBpm(pointer.position.y)
+                this.helpText.setText(this.bpm.toString() +' Beats per minute')
                 Transport.bpm.value = this.bpm;
 
             })
+            .on('pointerover', ()=>{
+                this.helpText.setText('Drag to adjust beats per minute')
+            })
+            .on('pointerout', ()=>{
+                this.helpText.setText('')
+            })
 
-        this.bpmText = this.scene.add.text(this.slider.x + 4, this.slider.y + 7, this.bpm.toString(), { color: '#ffffff', fontSize: '10px' }).setOrigin(0).setDepth(1)
+        this.bpmText = this.scene.add.text(this.slider.x + 4, this.slider.y + 7, this.bpm.toString(), { color: '#ffffff', fontSize: '10px' }).setOrigin(0).setDepth(3)
 
     }
     convertPointerToBpm(pointerY){
@@ -79,10 +88,10 @@ export default class Metronome extends Phaser.GameObjects.Container {
             .rectangle(this.x, this.y, this.width, this.height, generateColor())
             .setOrigin(0).setDepth(1)
             .setAlpha(1).setStrokeStyle(1, 0x000000, 1)
-            .setInteractive({ useHandCursor: true })
-            .on("pointerdown", () => {
-                this.running = !this.running
-            }, this);
+            // .setInteractive({ useHandCursor: true })
+            // .on("pointerdown", () => {
+            //     this.running = !this.running
+            // }, this);
     }
     update() {
         this.bpmText.setText(this.bpm.toString())

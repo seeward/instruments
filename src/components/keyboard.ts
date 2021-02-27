@@ -39,11 +39,14 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
   lengthSelector: Phaser.GameObjects.Ellipse
   makeBubbles: boolean = false;
   bubbleControl: Phaser.GameObjects.Ellipse;
-  synthManager: SynthManager = new SynthManager(this.scene,0,0);
+  synthManager: SynthManager 
   drums: Drums;
+  helpText: Phaser.GameObjects.Text
 
-  constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth) {
+  constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth, helpText?: Phaser.GameObjects.Text) {
     super(scene, x, y);
+    this.helpText = helpText ? helpText : null
+    this.synthManager = new SynthManager(this.scene,0,0, this.helpText);
     this.scene.add.existing(this);
     this._scales_ = [
       [
@@ -230,7 +233,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     return Math.floor(y) / 100
   }
   addMetronome() {
-    this.metronome = new Metronome(this.scene, this.effectBG.x + this.effectBG.width, this.effectBG.y, 110, 25, 100)
+    // nome = new Metronome(this.scene, this.effectBG.x + this.effectBG.width, this.effectBG.y, 110, 25, 100)
   }
   addEffectControls() {
     this.tooltip = this.scene.add.text(this.x + 615, this.y + 140, '', { color: '#000000', fontSize: '12px' }).setOrigin(0).setDepth(1)
@@ -276,7 +279,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       })
     this.effectStickInner = this.scene.add.ellipse(this.effectStick.x + 7.5, this.effectStick.y + 7.5, 10, 10, 0x000000, 1).setOrigin(0).setDepth(3)
     this.delayControl = this.scene.add.ellipse(this.effectBG.x + 10, this.effectBG.y + 110, 10, 10, generateColor(), 1).setDepth(1)
-      .setInteractive({ useHandCursor: true })
+      .setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
       .on('pointerover', () => { this.delayControl.setScale(2); this.tooltip.setText("DELAY") })
       .on('pointerout', () => { this.delayControl.setScale(1); this.tooltip.setText("") })
       .on('pointerdown', () => {
@@ -290,7 +293,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         this.effectConnectFlag = !this.effectConnectFlag
       })
     this.distControl = this.scene.add.ellipse(this.effectBG.x + 30, this.effectBG.y + 110, 10, 10, generateColor(), 1).setDepth(1)
-      .setInteractive({ useHandCursor: true })
+      .setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
       .on('pointerover', () => { this.distControl.setScale(2); this.tooltip.setText("DISTORTION") })
       .on('pointerout', () => { this.distControl.setScale(1); this.tooltip.setText("") })
       .on('pointerdown', () => {
@@ -752,7 +755,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       this.effectStickInner.x = this.effectStick.x + 7.5
       this.effectStickInner.y = this.effectStick.y + 7.5
     }
-    this.metronome.update()
+    // this.metronome.update()
     this.recorder.update()
   }
 }

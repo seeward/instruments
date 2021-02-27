@@ -13,9 +13,11 @@ export default class CustomRecorder extends Phaser.GameObjects.Container {
     h: number
     w: number
     tooltip: Phaser.GameObjects.Text
+    helpText: Phaser.GameObjects.Text
 
-    constructor(scene: Phaser.Scene, x: number, y: number, h?: number, w?: number) {
+    constructor(scene: Phaser.Scene, x: number, y: number, h?: number, w?: number, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
+        this.helpText = helpText ? helpText : null
         this.h = h ? h : 50
         this.w = w ? w : 50
         this.scene.add.existing(this);

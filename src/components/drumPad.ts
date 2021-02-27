@@ -1,3 +1,4 @@
+import { Scene } from "phaser";
 import { Loop, now, Player, Reverb, Sequence, Transport } from "tone";
 import { Tone } from "tone/build/esm/core/Tone";
 import { generateColor } from "../helpers/PhaserHelpers";
@@ -14,15 +15,19 @@ export default class DrumPad extends Phaser.GameObjects.Container {
     mainSeq: Loop;
     allSelected: boolean = false;
     verb: Reverb;
+    helpText: Phaser.GameObjects.Text
+    makeBubbles: boolean = true;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, sound: string) {
+    constructor(scene: Phaser.Scene, x: number, y: number, sound: string, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
+        this.helpText = helpText ? helpText : null
         this.scene.add.existing(this);
         this.verb = new Reverb(.5).toDestination()
-        this.sound = new Player(sound).toDestination().chain(this.verb);
+        this.sound = new Player(sound).toDestination().chain(this.verb)
         this.makePadControl();
         this.makeSequenceControls();
         this.makeSequence();
+        
 
     }
     initSeqArray() {
@@ -31,6 +36,19 @@ export default class DrumPad extends Phaser.GameObjects.Container {
             arr.push(false);
         }
         return arr;
+    }
+    makeBubble(x:number, y: number, s: Scene){
+      
+        if(this.makeBubbles){
+          let rand = Math.floor(Phaser.Math.Between(1,3))
+          let text = rand == 1 ? 'bubble' : rand == 2 ? 'bubble2' : 'bubble3'
+          let t = s.physics.add.sprite(x+10,y-10,text).setDepth(1)
+          .setVelocityY(Phaser.Math.Between(10, 150))
+          .setCollideWorldBounds(true)
+          .setVelocityX(Phaser.Math.Between(100, 150))
+          .setBounce(.5).setDepth(0).setTintFill(generateColor())
+           setTimeout(()=>{t.destroy()}, 7000)
+        }
     }
     adjustVerbDecay(decay: number) {
         this.verb.set({ decay: decay })
@@ -44,6 +62,7 @@ export default class DrumPad extends Phaser.GameObjects.Container {
                 if (this.sequence[i]) {
                     this.sound.start(time);
                     this.hitSeqCircle(i, self);
+                    this.makeBubble(this.x+ 50, this.y + 395, self)
                 } else {
                     this.hitSeqOffBeats(i, self)
 
@@ -57,7 +76,7 @@ export default class DrumPad extends Phaser.GameObjects.Container {
 
         }, '16n').start(now());
 
-
+    
     }
     setAllSeqStepsOnOrOff() {
         if (this.allSelected) {
@@ -90,10 +109,32 @@ export default class DrumPad extends Phaser.GameObjects.Container {
                 this.pad.setAlpha(this.muted ? .5 : 1)
 
             })
+            .on('pointerover', ()=>{
+                this.helpText.setText('Mute / Unmute Sample')
+            })
+            .on('pointerout', () => {
+                this.helpText.setText('')
+            })
 
+    }
+    clear(){
+        this.seqCircles.forEach((eachCircle)=>{
+            eachCircle.setFillStyle(0x000000,1)
+        })
+        this.sequence = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false];
     }
     getSequence() {
         return this.sequence;
+    }
+    setSequence(seq: boolean[]){
+        this.sequence = seq;
+        this.seqCircles.forEach((eachCircle, i)=>{
+            if(this.sequence[i]){
+                eachCircle.setFillStyle(generateColor(), 1)
+            } else {
+                eachCircle.setFillStyle(0x000000, 1)
+            }
+        })
     }
     isMuted() {
         return this.muted
@@ -167,8 +208,14 @@ export default class DrumPad extends Phaser.GameObjects.Container {
                 onOff.setFillStyle(this.allSelected ? generateColor() : 0x000000, 1)
                 this.setAllSeqStepsOnOrOff();
             })
+            .on('pointerover', ()=>{
+                this.helpText.setText('Add / Remove All Steps')
+            })
+            .on('pointerout', () => {
+                this.helpText.setText('')
+            })
 
-        let vol = this.scene.add.ellipse(this.x + 390, this.y + 20, 10, 10, generateColor(), 1).setDepth(2).setOrigin(0)
+        let vol = this.scene.add.ellipse(this.x + 390, this.y + 20, 10, 10, generateColor(), 1).setDepth(4).setOrigin(0)
             .setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0xffffff, 1)
             .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
                 console.log(Math.floor(pointer.y - this.y) * -1)
@@ -183,12 +230,15 @@ export default class DrumPad extends Phaser.GameObjects.Container {
                 volText.setText(y.toString() + " db")
                 this.sound.set({ volume: y })
             })
+            .on('pointerover', ()=>{
+                this.helpText.setText('Drag to Adjust volume of sample')
+            })
             .on('pointerout', () => {
                 volBG.setVisible(false)
                 volText.setText('')
             })
         let volBG = this.scene.add.rectangle(this.x + 355, this.y - 15, 45, 20, generateColor(), 1).setDepth(2).setOrigin(0).setVisible(false)
-        let volText = this.scene.add.text(this.x + 360, this.y - 10, "", { fontSize: '10px', color: '#000000' }).setDepth(3).setOrigin(0)
+        let volText = this.scene.add.text(this.x + 360, this.y - 10, "", { fontSize: '10px', color: '#000000' }).setDepth(4).setOrigin(0)
 
     }
     update() {

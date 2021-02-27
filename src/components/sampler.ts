@@ -21,11 +21,12 @@ export default class CustomSampler extends Phaser.GameObjects.Container {
     activePad: number | undefined;
     pads: string[];
     muted: boolean = false
+    helpText: Phaser.GameObjects.Text
 
-    constructor(scene: Phaser.Scene, x: number, y: number){
+    constructor(scene: Phaser.Scene, x: number, y: number,helpText?: Phaser.GameObjects.Text){
         super(scene,x,y);
+        this.helpText = helpText ? helpText : null
         this.createSamplerControls();
-
         this.scene.add.existing(this);
     }
 
