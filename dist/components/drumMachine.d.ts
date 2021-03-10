@@ -1,0 +1,56 @@
+import { Sequence } from "tone";
+import DrumPad from './drumPad';
+import Metronome from './metronome';
+import MachineMusicMan from '../components/mlmusician';
+interface SavedSequence {
+    seqData: boolean[];
+}
+export default class DrumMachine extends Phaser.GameObjects.Container {
+    mlPatternGenerator: MachineMusicMan;
+    midiDrums: number[];
+    reverseMidiMapping: Map<number, number>;
+    mainLoop: Sequence;
+    sequence: boolean[];
+    muted: boolean;
+    pads: DrumPad[];
+    sampleIndex: number;
+    showingSavedPatterns: boolean;
+    playButton: Phaser.GameObjects.Ellipse;
+    savedCards: Phaser.GameObjects.Rectangle[];
+    savedText: Phaser.GameObjects.Text[];
+    samples: string[][];
+    metronome: Metronome;
+    delayControl: Phaser.GameObjects.Rectangle;
+    resetButton: Phaser.GameObjects.Rectangle;
+    savedSeq: SavedSequence[];
+    helpText: Phaser.GameObjects.Text;
+    saveButton: Phaser.GameObjects.Rectangle;
+    loadButton: Phaser.GameObjects.Rectangle;
+    showingSampleMenu: boolean;
+    sampleButton: Phaser.GameObjects.Rectangle;
+    savedKits: {};
+    savedKitText: {};
+    bg: Phaser.GameObjects.Rectangle;
+    border: Phaser.GameObjects.Rectangle;
+    guide1: Phaser.GameObjects.Line;
+    guide2: Phaser.GameObjects.Line;
+    guide3: Phaser.GameObjects.Line;
+    generatedPattern: any[];
+    MLButton: Phaser.GameObjects.Ellipse;
+    patternLoaded: any;
+    tempSlider: Phaser.GameObjects.Rectangle;
+    constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text);
+    getSeedLoop(): Promise<void>;
+    loadGeneratedLoop(savedSeq: any): void;
+    initStarterLoops(): void;
+    clearAll(): void;
+    reloadSamples(): void;
+    saveSeq(): void;
+    loadSeq(id?: string): void;
+    loadSavedKeys(): string[];
+    makeControls(): void;
+    playSequence(): void;
+    initPads(): void;
+    update(): void;
+}
+export {};

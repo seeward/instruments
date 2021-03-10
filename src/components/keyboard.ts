@@ -1,4 +1,4 @@
-import { AMSynth, Chorus, Delay, Distortion, Filter, FMSynth, MembraneSynth, MonoSynth, PingPongDelay, PluckSynth, PolySynth, Recorder, Reverb, Synth } from 'tone';
+import { AMSynth, Chorus, Delay, Distortion, Filter, FMSynth, immediate, MembraneSynth, MonoSynth, now, Pattern, PingPongDelay, PluckSynth, PolySynth, Recorder, Reverb, Sequence, Synth, Transport } from 'tone';
 import 'phaser';
 import { generateColor } from '../helpers/PhaserHelpers';
 import Metronome from './metronome';
@@ -6,7 +6,8 @@ import CustomRecorder from './recorder';
 import 'webmidi';
 import 'navigator';
 import SynthManager from './synthManager'
-import Drums from './drums';
+import Drums from './sampler';
+import * as mm from '@magenta/music';
 
 export default class KeyBoard extends Phaser.GameObjects.Container {
 
@@ -145,6 +146,19 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
 
     }
   }
+  public playSequence(seq:{notes: any[]}) {
+    console.log(seq)
+    // let t = seq.notes.map((note)=>{ return this.noteMidiToString(note.pitch)})
+    // console.log(t)
+    // let p = new Sequence((time,value)=>{
+
+    //   this.synth.triggerAttackRelease(this.noteMidiToString(value), '16n', time)
+
+    // },t).start(0)
+      
+    
+    
+  }
   addNoteLengthControls() {
 
 
@@ -153,11 +167,11 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       .setStrokeStyle(1, 0x000000, .7).setDepth(1)
       .on('pointerover', () => {
         this.eighth.setAlpha(1)
-        this.tooltip.setText("1/8 note")
+        this.helpText.setText("1/8 note")
       })
       .on('pointerout', () => {
         this.eighth.setAlpha(.5)
-        this.tooltip.setText("")
+        this.helpText.setText("")
       })
       .on('pointerdown', () => {
         this.noteLength = '8n'
@@ -173,11 +187,11 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       .setInteractive({ useHandCursor: true }).setDepth(1)
       .on('pointerover', () => {
         this.quarter.setAlpha(1)
-        this.tooltip.setText("1/4 note")
+        this.helpText.setText("1/4 note")
       }).setStrokeStyle(1, 0x000000, .7)
       .on('pointerout', () => {
         this.quarter.setAlpha(.5)
-        this.tooltip.setText("")
+        this.helpText.setText("")
       })
       .on('pointerdown', () => {
         this.lengthSelector.setX(this.quarter.x)
@@ -189,11 +203,11 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       .setInteractive({ useHandCursor: true }).setDepth(1)
       .on('pointerover', () => {
         this.half.setAlpha(1)
-        this.tooltip.setText("1/2 note")
+        this.helpText.setText("1/2 note")
       }).setStrokeStyle(1, 0x000000, .7)
       .on('pointerout', () => {
         this.half.setAlpha(.5)
-        this.tooltip.setText("")
+        this.helpText.setText("")
       })
       .on('pointerdown', () => {
         this.lengthSelector.setX(this.half.x)
@@ -205,11 +219,11 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       .setInteractive({ useHandCursor: true }).setDepth(1)
       .on('pointerover', () => {
         this.whole.setAlpha(1)
-        this.tooltip.setText("Whole note")
+        this.helpText.setText("Whole note")
       }).setStrokeStyle(1, 0x000000, .7)
       .on('pointerout', () => {
         this.whole.setAlpha(.5)
-        this.tooltip.setText("")
+        this.helpText.setText("")
       })
       .on('pointerdown', () => {
         this.lengthSelector.setX(this.whole.x)
@@ -238,12 +252,12 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
   }
   addEffectControls() {
     this.tooltip = this.scene.add.text(this.x + 615, this.y + 140, '', { color: '#000000', fontSize: '12px' }).setOrigin(0).setDepth(1)
-    this.effectBG = this.scene.add.rectangle(this.x + 600, this.y, 100, 100, 0xc1c1c1, .5).setOrigin(0).setDepth(1)
-    this.effectBGInner = this.scene.add.rectangle(this.x + 610, this.y + 10, 80, 80, 0xffffff, 1).setOrigin(0).setDepth(1)
-    this.effectStick = this.scene.add.rectangle(this.effectBG.x + 10, this.effectBG.y + 10, 25, 25, 0xc1c1c1, 1).setDepth(2)
+    this.effectBG = this.scene.add.rectangle(this.x + 600, this.y, 100, 100, 0xc1c1c1, .5).setOrigin(0).setDepth(1).setStrokeStyle(2,0x000000, 1)
+    this.effectBGInner = this.scene.add.rectangle(this.x + 610, this.y + 10, 80, 80, 0xffffff, 1).setOrigin(0).setDepth(1).setStrokeStyle(1,0x000000, .5)
+    this.effectStick = this.scene.add.rectangle(this.effectBG.x + 10, this.effectBG.y + 10, 25, 25, generateColor(), 1).setDepth(2)
       .setOrigin(0)
       .on('pointerover', () => { this.effectStick.setFillStyle(generateColor()); })
-      .on('pointerout', () => { this.effectStick.setFillStyle(generateColor()); this.tooltip.setText("") })
+      .on('pointerout', () => { this.effectStick.setFillStyle(generateColor()); this.helpText.setText("") })
       .setInteractive({ useHandCursor: true, draggable: true })
       .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
 
@@ -264,16 +278,16 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         }
         let delayLvl = this.convertXToEffectParam1(x);
         let distLvl = this.convertYToEffectParam2(y);
-        console.log(distLvl)
+
         this.effect.set({
           delayTime: delayLvl
         })
-
+        
         this.dist.set({
           distortion: distLvl
         })
 
-        this.tooltip.setText(`${delayLvl.toFixed(2)} : ${distLvl}`)
+        this.helpText.setText(`${delayLvl.toFixed(2)} Delay: ${distLvl} Distortion`)
         this.effectStick.x = pointer.position.x
         this.effectStick.y = pointer.position.y
 
@@ -281,8 +295,8 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     this.effectStickInner = this.scene.add.ellipse(this.effectStick.x + 7.5, this.effectStick.y + 7.5, 10, 10, 0x000000, 1).setOrigin(0).setDepth(3)
     this.delayControl = this.scene.add.ellipse(this.effectBG.x + 10, this.effectBG.y + 110, 10, 10, generateColor(), 1).setDepth(1)
       .setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
-      .on('pointerover', () => { this.delayControl.setScale(2); this.tooltip.setText("DELAY") })
-      .on('pointerout', () => { this.delayControl.setScale(1); this.tooltip.setText("") })
+      .on('pointerover', () => { this.delayControl.setScale(2); this.helpText.setText("DELAY") })
+      .on('pointerout', () => { this.delayControl.setScale(1); this.helpText.setText("") })
       .on('pointerdown', () => {
         if (!this.effectConnectFlag) {
           this.synth.disconnect(this.effect)
@@ -295,8 +309,8 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       })
     this.distControl = this.scene.add.ellipse(this.effectBG.x + 30, this.effectBG.y + 110, 10, 10, generateColor(), 1).setDepth(1)
       .setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
-      .on('pointerover', () => { this.distControl.setScale(2); this.tooltip.setText("DISTORTION") })
-      .on('pointerout', () => { this.distControl.setScale(1); this.tooltip.setText("") })
+      .on('pointerover', () => { this.distControl.setScale(2); this.helpText.setText("DISTORTION") })
+      .on('pointerout', () => { this.distControl.setScale(1); this.helpText.setText("") })
       .on('pointerdown', () => {
         if (!this.distConnectFlag) {
           this.distControl.setAlpha(.25)
@@ -368,8 +382,8 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     this.volumeLine = this.scene.add.rectangle(this.x, this.y, 600, 5, 0x000000, .25).setOrigin(0).setDepth(1)
     this.volumeSlide = this.scene.add.ellipse(this.x - 12.5, this.y - 10, 25, 25, generateColor(), 1).setStrokeStyle(2, 0x000000, .5).setDepth(2)
       .setOrigin(0).setInteractive({ useHandCursor: true, draggable: true })
-      .on('pointerover', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.tooltip.setText("GAIN") })
-      .on('pointerout', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.tooltip.setText("") })
+      .on('pointerover', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("GAIN") })
+      .on('pointerout', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("") })
       .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
         this.volumeSlide.x = pointer.position.x
         let adjustedX = this.convertXtoVolume(this.volumeSlide.x - this.x)
@@ -380,14 +394,14 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         if (adjustedX < -90) {
           adjustedX = -90
         }
-        this.tooltip.setText(`GAIN: ${adjustedX} db`)
+        this.helpText.setText(`GAIN: ${adjustedX} db`)
         this.synth.set({ volume: adjustedX })
       })
   }
   addToneControls() {
-    this.soundSwitcher = this.scene.add.ellipse(this.x, this.y + 200, 40, 40, generateColor(), .75).setInteractive({ useHandCursor: true })
-      .on('pointerover', () => { this.soundSwitcher.setAlpha(1); this.tooltip.setText(`TONE: ${this.synth.name}`) }).setStrokeStyle(2, 0x000000, .5)
-      .on('pointerout', () => { this.soundSwitcher.setAlpha(.75); this.tooltip.setText("") }).setDepth(2)
+    this.soundSwitcher = this.scene.add.ellipse(this.x, this.y + 200, 40, 40, generateColor(), 1).setInteractive({ useHandCursor: true })
+      .on('pointerover', () => { this.soundSwitcher.setAlpha(1); this.helpText.setText(`TONE: ${this.synth.name}`) }).setStrokeStyle(2, 0x000000, .5)
+      .on('pointerout', () => { this.soundSwitcher.setAlpha(.75); this.helpText.setText("") }).setDepth(2)
       .on('pointerdown', () => {
         this.soundSwitcher.setFillStyle(generateColor(), 1)
         this.currentSynthIndex++
@@ -402,7 +416,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     if (this.effect && this.recorder) {
       newtone.chain(this.effect, this.dist, new Reverb(.5).toDestination(), this.recorder.getRecorder())
     }
-    this.tooltip.setText(`TONE: ${newtone.name}`)
+    this.helpText.setText(`TONE: ${newtone.name}`)
     this.synth = newtone
   }
   addBubbleControl() {

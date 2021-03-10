@@ -1,0 +1,35 @@
+import 'phaser';
+import { Meter, Player, Recorder, UserMedia } from 'tone';
+export default class CustomRecorder extends Phaser.GameObjects.Container {
+    isRecording: boolean;
+    recorder: Recorder;
+    startBtn: Phaser.GameObjects.Ellipse;
+    stopBtn: Phaser.GameObjects.Rectangle;
+    playBtn: Phaser.GameObjects.Rectangle;
+    currentLoop: Player;
+    lastRecording: Blob;
+    h: number;
+    w: number;
+    tooltip: Phaser.GameObjects.Text;
+    helpText: Phaser.GameObjects.Text;
+    inputLevel: number;
+    inputMeterLine: Phaser.GameObjects.Rectangle;
+    inputMeterLineBackground: Phaser.GameObjects.Rectangle;
+    meter: Meter;
+    micBtn: Phaser.GameObjects.Ellipse;
+    mic: UserMedia;
+    constructor(scene: Phaser.Scene, x: number, y: number, h?: number, w?: number, helpText?: Phaser.GameObjects.Text);
+    addMic(): void;
+    getRecorder(): Recorder;
+    startMic(): void;
+    addControls(): void;
+    startRecording(): void;
+    stopRecording(): Promise<void>;
+    clearRecording(): void;
+    disconnectRecording(): void;
+    connectRecording(): void;
+    startPlayback(): void;
+    stopPlayback(): void;
+    downloadRecording(): void;
+    update(): void;
+}

@@ -1,7 +1,15 @@
 {
     "compilerOptions": {
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "declaration": true,
+        "sourceMap": true,
+        "pretty": true,
         "target": "es5",
-        "moduleResolution": "node"
+        "module": "es6",
+        "moduleResolution": "node",
+        "esModuleInterop": true
+
     },
     "include": [
         "./src/**/*"
