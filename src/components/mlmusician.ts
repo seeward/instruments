@@ -1,16 +1,25 @@
 
 import * as mm from '@magenta/music/es5'
 import * as _ from 'lodash-es'
+import {  Transport } from 'tone';
 
 export enum ModelCheckpoints {
   DrumRNN = 'https://storage.googleapis.com/download.magenta.tensorflow.org/tfjs_checkpoints/music_rnn/drum_kit_rnn',
   ChordImprov = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/chord_pitches_improv',
-  BasicRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn' 
+  BasicRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn' ,
+  ImprovRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/chord_pitches_improv',
+  MelodyVAE = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_vae/mel_4bar_small_q2'
 }
 export default class MachineMusicMan {
 
-  midiDrums: number[] = [36, 38, 42, 46, 41, 43, 45, 49, 51];
-  reverseMidiMapping: Map<number, number> = new Map([
+  _player: mm.Player
+  _seq_model: mm.MusicRNN | mm.MusicVAE | mm.Coconet
+  _model_url: ModelCheckpoints
+  _temperature: number = 1.4
+  _helpText: Phaser.GameObjects.Text;
+  _midi_drums: number[] = [36, 38, 42, 46, 41, 43, 45, 49, 51];
+
+  _reverse_midi_mapping: Map<number, number> = new Map([
     [36, 0],
     [35, 0],
     [38, 1],
@@ -73,9 +82,6 @@ export default class MachineMusicMan {
     [59, 8],
     [82, 8]
   ]);
-  _player: mm.Player
-  _seq_model: mm.MusicRNN
-  _model_url: ModelCheckpoints
   _drum_seed: mm.INoteSequence = {
     notes: [
       { pitch: 36, quantizedStartStep: 0, quantizedEndStep: 1, isDrum: true },
@@ -149,16 +155,15 @@ export default class MachineMusicMan {
       { pitch: 'G4', startTime: 25.5, endTime: 28.5 }
     ]
   }
-  _temperature: number = 1.4
-  helpText: Phaser.GameObjects.Text;
 
 
-  constructor(Model: ModelCheckpoints, helpText?: Phaser.GameObjects.Text) {
+
+  constructor(Model: ModelCheckpoints, _helpText?: Phaser.GameObjects.Text) {
     if(!Model){
       throw new Error("ML MODEL URL NOT PROVIDED")
     }
     this._model_url = Model
-    this.helpText = helpText
+    this._helpText = _helpText
 
     this._player = new mm.Player(false, {
       stop: this._onPlayerStop,
@@ -181,15 +186,26 @@ export default class MachineMusicMan {
   }
 
   async setupModel() {
-    this._seq_model = new mm.MusicRNN(this._model_url);
-    this.helpText.setText('Initialising ML Model')
+    this._seq_model = new mm.MusicVAE(this._model_url);
+    this._helpText.setText('Initialising ML Model')
     await this._seq_model.initialize()
-    this.helpText.setText('AI Model Initialized')
+    this._helpText.setText('AI Model Initialized')
+    setInterval(async ()=>{
+      await this.sampleModel(1)
+    }, 5000)
     
   }
 
+  async sampleModel(num:number, proj?: string[]){
+    let sample = await (this._seq_model as mm.MusicVAE).sample(num, this._temperature)
+    if(!this._player.isPlaying()){
+      console.log(sample[0].notes)
+      this._player.start(sample[0], Transport.bpm.value);
+    }
+    
+  }
   private _onPlayerStart(note?: any) {
-    console.log(note)
+    //console.log(note)
   }
 
   private _onPlayerStop(note?: any) {
@@ -223,7 +239,7 @@ export default class MachineMusicMan {
       let seedSeq = this.toNoteSequence(seed);
       console.log(seedSeq)
       
-      return this._seq_model
+      return (this._seq_model as mm.MusicRNN)
         .continueSequence(seedSeq, 16, this._temperature)
         .then(r =>{
           return this.fromNoteSequence(r, 16)
@@ -242,7 +258,7 @@ export default class MachineMusicMan {
 
     let _notes = _.flatMap(pattern, (step, index) =>
     step.map(d => ({
-      pitch: self.midiDrums[d],
+      pitch: self._midi_drums[d],
       startTime: index * 0.5,
       endTime: (index + 1) * 0.5
     }))
@@ -276,8 +292,8 @@ export default class MachineMusicMan {
     console.log(seq)
     let res =  _.times(patternLength, () => []);
     for (let { pitch, quantizedStartStep } of seq.notes) {
-      // console.log(pitch, this.reverseMidiMapping.get(pitch))
-      res[quantizedStartStep].push(this.reverseMidiMapping.get(pitch));
+      // console.log(pitch, this._reverse_midi_mapping.get(pitch))
+      res[quantizedStartStep].push(this._reverse_midi_mapping.get(pitch));
     }
     return res;
   }

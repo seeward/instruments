@@ -134,7 +134,9 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         super(scene, x, y)
         this.helpText = helpText ? helpText : null
         // Transport.loop = true
-        this.mlPatternGenerator = new MachineMusicMan(ModelCheckpoints.DrumRNN, this.helpText);
+        // this.mlPatternGenerator = new MachineMusicMan(ModelCheckpoints.DrumRNN, this.helpText);
+        let mm = new MachineMusicMan(ModelCheckpoints.MelodyVAE, this.helpText);
+        // mm.sampleModel(2)
         this.makeControls()
         this.initStarterLoops()
         this.scene.add.existing(this);
