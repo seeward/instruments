@@ -21,6 +21,7 @@
     "dependencies": {
         "@magenta/music": "^1.21.0",
         "@types/webmidi": "^2.0.4",
+        "comlink": "^4.3.0",
         "howler": "^2.2.1",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
@@ -38,6 +39,7 @@
         "rollup-plugin-serve": "^1.1.0",
         "rollup-plugin-typescript2": "^0.29.0",
         "rollup-plugin-uglify": "^6.0.4",
+        "rollup-plugin-web-worker-loader": "^1.6.1",
         "typescript": "^4.1.5"
     }
 }

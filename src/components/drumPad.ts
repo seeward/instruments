@@ -11,7 +11,7 @@ export default class DrumPad extends Phaser.GameObjects.Container {
     muted: boolean = false;
     pad: Phaser.GameObjects.Rectangle;
     seqCircles: Phaser.GameObjects.Ellipse[] = [];
-    sound: Player;
+    public sound: Player;
     mainSeq: Loop;
     allSelected: boolean = false;
     verb: Reverb;
@@ -24,11 +24,25 @@ export default class DrumPad extends Phaser.GameObjects.Container {
     volText: Phaser.GameObjects.Text;
     loopIndex: number = 0;
     patternLoop: Loop<any>;
+    i: number;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, sound: string, helpText?: Phaser.GameObjects.Text) {
+    constructor(scene: Phaser.Scene, x: number, y: number, sound: string, player?: Player, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
         this.helpText = helpText ? helpText : null
+        this.setUpSounds(sound, player);
+        
+        Transport.on('start', () => {
+            this.patternLoop.start(0)
+        })
+        Transport.on('stop', ()=>{
+           
+            this.i = 0
+            this.patternLoop.set({position: '00:00:00'})
+        })
         this.scene.add.existing(this);
+
+    }
+    setUpSounds(sound: string, player: Player){
         this.verb = new Reverb(.5).toDestination()
 
         this.sound = new Player().toDestination().chain(this.verb)
@@ -40,15 +54,9 @@ export default class DrumPad extends Phaser.GameObjects.Container {
                 // this.makeSequence(0, this.scene);
             }
         })
-        Transport.on('start', () => {
-            this.patternLoop.start(0)
-        })
-        Transport.on('stop', ()=>{
-            Transport.position = 0;
-            this.patternLoop.set({position: 0})
-        })
-        
-
+    }
+    getPlayer(){
+        return this.sound
     }
     async loadSound(sound: string) {
         return await this.sound.load(sound)
@@ -95,21 +103,21 @@ export default class DrumPad extends Phaser.GameObjects.Container {
     }
     makePattern(index?: number, self?: Phaser.Scene){
         console.log("INTO MAKE PATTERN")
-        let i = index;
+        this.i = index;
         this.patternLoop = new Loop((time)=>{
 
             if (!this.muted) {
-                if (this.sequence[i]) {
+                if (this.sequence[this.i]) {
                     this.sound.start(time);
-                    this.hitSeqCircle(i, self);
+                    this.hitSeqCircle(this.i, self);
                     this.makeBubble(this.x + 100, this.y + 300, self)
                 } else {
-                    this.hitSeqOffBeats(i, self)
+                    this.hitSeqOffBeats(this.i, self)
                 }
-                if (i + 1 === this.seqLength) {
-                    i = 0
+                if (this.i + 1 === this.seqLength) {
+                    this.i = 0
                 } else {
-                    i++
+                    this.i++
                 }
             }
 

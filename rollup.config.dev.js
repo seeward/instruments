@@ -24,7 +24,6 @@ export default {
     },
 
     plugins: [
-
         //  Toggle the booleans here to enable / disable Phaser 3 features:
         replace({
             'typeof CANVAS_RENDERER': JSON.stringify(true),

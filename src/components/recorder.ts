@@ -52,10 +52,10 @@ export default class CustomRecorder extends Phaser.GameObjects.Container {
     startMic() {
 
         this.inputMeterLineBackground = this.scene.add.rectangle(this.micBtn.x + 20, this.micBtn.y + 5, 0, 10, 0x000000, 1)
-        .setOrigin(0).setDepth(3)
-    this.inputMeterLine = this.scene.add.rectangle(this.micBtn.x + 20, this.micBtn.y + 5, 10, 10, 0x000000, 1)
-        .setOrigin(0).setDepth(3)
-        this.inputMeterLineBackground.width = 100
+            .setOrigin(0).setDepth(3)
+        this.inputMeterLine = this.scene.add.rectangle(this.micBtn.x + 20, this.micBtn.y + 5, 10, 10, 0x000000, 1)
+            .setOrigin(0).setDepth(3)
+        this.inputMeterLineBackground.width = 10
 
 
 
@@ -68,13 +68,13 @@ export default class CustomRecorder extends Phaser.GameObjects.Container {
                 this.inputMeterLineBackground.setFillStyle(0xff0000)
                 this.inputMeterLine.setFillStyle(0x000000)
                 this.inputMeterLine.width = 0
-                setInterval(() => {
+                // setInterval(() => {
 
-                    console.log(this.meter.getValue());
+                //     console.log(this.meter.getValue());
 
-                }
+                // }
 
-                    , 100);
+                //     , 100);
             })
             .catch(e => {
                 // promise is rejected when the user doesn't have or allow mic access
@@ -154,6 +154,7 @@ export default class CustomRecorder extends Phaser.GameObjects.Container {
             })
             .on("pointerdown", () => {
                 if (this.mic.state !== 'stopped') {
+                    console.log('into closing mic')
                     this.mic.close()
                     this.inputMeterLine.destroy()
                     this.inputMeterLineBackground.destroy()
@@ -225,11 +226,13 @@ export default class CustomRecorder extends Phaser.GameObjects.Container {
         anchor.click();
     }
     update() {
-        if(this.inputMeterLine){
-            this.inputMeterLine.width = this.mic.state === 'started' ? ((this.meter.getValue() as number) > 100 ? 100 : (this.meter.getValue() as number))* -1 / .75 : this.inputMeterLine.width = 0
+        if (this.inputMeterLine) {
+            this.inputMeterLine.width = this.mic.state === 'started' ? 
+            ((this.meter.getValue() as number) > 100 ? 90 : (this.meter.getValue() as number)) * -1 / .75 
+            : 0
 
         }
 
     }
 
-} 
+}

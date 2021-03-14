@@ -1,23 +1,52 @@
 
 import * as mm from '@magenta/music/es5'
 import * as _ from 'lodash-es'
-import {  Transport } from 'tone';
+import { Transport } from 'tone';
 
 export enum ModelCheckpoints {
+  MelodyRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn',
+  MelodywithChordsRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/chord_pitches_improv',
   DrumRNN = 'https://storage.googleapis.com/download.magenta.tensorflow.org/tfjs_checkpoints/music_rnn/drum_kit_rnn',
   ChordImprov = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/chord_pitches_improv',
   BasicRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/basic_rnn' ,
   ImprovRNN = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/chord_pitches_improv',
   MelodyVAE = 'https://storage.googleapis.com/magentadata/js/checkpoints/music_vae/mel_4bar_small_q2'
 }
+
+export enum MLModels {
+  RNN = 1,
+  VAE = 2,
+  DDSP = 3,
+  COCONET = 4,
+  GANSYNTH = 5,
+  PIANOGENIE = 6
+}
+
+
+export enum WorkerStates {
+  init = 1,
+  waiting = 2,
+  working = 3
+}
+export interface IRecorderConfig {
+  playClick: boolean,
+  qpm: number,
+  playCountIn: boolean,
+  startRecordingAtFirstNote: boolean
+}
 export default class MachineMusicMan {
 
   _player: mm.Player
-  _seq_model: mm.MusicRNN | mm.MusicVAE | mm.Coconet
+  _melody_converter: mm.data.MelodyConverter
+  public _recorder: mm.Recorder
+  _recorded_seq: mm.INoteSequence
+  _sampled_seq: mm.INoteSequence
+  _seq_model: mm.MusicRNN | mm.MusicVAE | mm.Coconet | mm.GANSynth | mm.DDSP | mm.PianoGenie
   _model_url: ModelCheckpoints
-  _temperature: number = 1.4
+  _temperature: number = 1.125
   _helpText: Phaser.GameObjects.Text;
   _midi_drums: number[] = [36, 38, 42, 46, 41, 43, 45, 49, 51];
+  _model_type: MLModels;
 
   _reverse_midi_mapping: Map<number, number> = new Map([
     [36, 0],
@@ -155,103 +184,173 @@ export default class MachineMusicMan {
       { pitch: 'G4', startTime: 25.5, endTime: 28.5 }
     ]
   }
+  _logText: Phaser.GameObjects.Text;
 
 
+  constructor(Model: MLModels, ModelURL: ModelCheckpoints, _helpText?: Phaser.GameObjects.Text, _logText?: Phaser.GameObjects.Text) {
 
-  constructor(Model: ModelCheckpoints, _helpText?: Phaser.GameObjects.Text) {
-    if(!Model){
-      throw new Error("ML MODEL URL NOT PROVIDED")
+    if(!ModelURL || !Model){
+      throw new Error("ML MODEL OR URL NOT PROVIDED")
     }
-    this._model_url = Model
+
+
+    this._model_type = Model
+    this._model_url = ModelURL
     this._helpText = _helpText
+    this._logText = _logText
 
     this._player = new mm.Player(false, {
       stop: this._onPlayerStop,
       run: this._onPlayerStart
     });
-
+    
     this.setupModel();
   }
 
-  /**
-   * setTempo
-   * tempo: number    
-   */
+  resolveModelText(type: MLModels){
+    switch(type){
+      case MLModels.RNN: 
+        return 'RNN Neural Model';
+        break
+      case MLModels.VAE: 
+        return 'VAE Neural Model'
+        break
+    }
+  }
+
   public setTempo(tempo?: number) {
     this._player.setTempo(tempo);
   }
+  public async initRecorder(opts?: IRecorderConfig){
+    this._recorder = new mm.Recorder(opts ? opts : {startRecordingAtFirstNote: true, qpm: Transport.bpm.value});
+    await this._recorder.initialize();
+  }
 
+  sendToWorker(msg:any){
+    console.log(`sending: ${msg}`)
+
+  }
+  initWorker(){
+    // Worker returns the result.
+  
+  this.sendToWorker({type: WorkerStates.init, notes:['C2', 'G4', 'A2', 'C5']})
+  }
+  public startRecorder(){
+    if(!this._recorder.isRecording()){
+      this._recorder.start();
+    }
+  }
+  public async stopRecorder() {
+    if(this._recorder.isRecording()){
+      this._recorded_seq = this._recorder.stop();
+      console.log(this._recorded_seq)
+      //let newPattern = await this.getSimilarPattern(this._recorded_seq)
+      let newPattern = await this.continuePattern(this._recorded_seq);
+      console.log(newPattern)
+      this._player.start(newPattern)
+    }
+  }
+  public playbackRecording(bpm: number){
+    if(!this._player.isPlaying()){
+      this._player.start(this._recorded_seq, bpm ? bpm : Transport.bpm.value)
+    }
+  }
   public setTempurature(temp: number){
     this._temperature = temp
   }
-
-  async setupModel() {
-    this._seq_model = new mm.MusicVAE(this._model_url);
-    this._helpText.setText('Initialising ML Model')
-    await this._seq_model.initialize()
-    this._helpText.setText('AI Model Initialized')
-    setInterval(async ()=>{
-      await this.sampleModel(1)
-    }, 5000)
-    
+  public isInitialised(){
+    return this._seq_model.isInitialized()
   }
+  async setupModel() {
+    this._logText.setText(`Initialising ${this.resolveModelText(this._model_type)}`)
+    switch(this._model_type){
+      case MLModels.RNN: 
+      this._seq_model = new mm.MusicRNN(this._model_url);
+      this._melody_converter = new mm.data.MelodyConverter({maxPitch: 88, minPitch: 0})
+      await this._seq_model.initialize()
+      break;
+      case MLModels.VAE: 
+      this._seq_model = new mm.MusicVAE(this._model_url);
+      await this._seq_model.initialize()
+      break;
 
-  async sampleModel(num:number, proj?: string[]){
-    let sample = await (this._seq_model as mm.MusicVAE).sample(num, this._temperature)
-    if(!this._player.isPlaying()){
-      console.log(sample[0].notes)
-      this._player.start(sample[0], Transport.bpm.value);
     }
-    
+    this._logText.setText(`${this.resolveModelText(this._model_type)} initialised`)
+  }
+  async sampleModel(num:number, chords?: string[]){
+
+    if(this._model_type === MLModels.VAE && this._seq_model.isInitialized()){
+      this._sampled_seq = await (this._seq_model as mm.MusicVAE).sample(num, this._temperature)
+      return this._sampled_seq
+    } else {
+      return this._melody_seed
+    }
+   
+  }
+  async getSimilarPattern(pattern: mm.INoteSequence, num: number = 1, similarity: number = .75){
+    if(this._model_type === MLModels.VAE && this._seq_model.isInitialized()){
+      let qPattern = mm.sequences.quantizeNoteSequence(pattern, 4)
+      console.log(qPattern)
+      this._sampled_seq = await (this._seq_model as mm.MusicVAE).similar(qPattern, num, similarity, this._temperature)
+      return this._sampled_seq
+    } else {
+      return this._melody_seed
+    }
+  }
+  async continuePattern(pattern: mm.INoteSequence){
+    if(this._model_type === MLModels.RNN && this._seq_model.isInitialized()){
+      let qPattern = mm.sequences.quantizeNoteSequence(pattern, 4)
+      console.log(qPattern)
+      this._sampled_seq = await (this._seq_model as mm.MusicRNN).continueSequence(qPattern, 64, this._temperature)
+      return this._sampled_seq
+    }
   }
   private _onPlayerStart(note?: any) {
     //console.log(note)
   }
 
   private _onPlayerStop(note?: any) {
-    console.log(note)
+    // console.log(note)
   }
 
-  /**
-   * start the player
-   */
-  public start() {
-    if (this._player.isPlaying()) {
-      this._player.stop();
-      return;
-    }
-    this._player.start(this._drum_seed);
-  }
-  /**
-   * stop the player
-   */
-  public stop() {
-    this._player.stop();
+  public convertToTensor(){
+
   }
 
-  /**
-   * generateNewDrumPart()
-   */
-  public async generateNewDrumPart(seed: any, length?: number) {
-    if(this._seq_model.isInitialized){
-      seed = seed
-      console.log(JSON.stringify(seed))
-      let seedSeq = this.toNoteSequence(seed);
-      console.log(seedSeq)
-      
-      return (this._seq_model as mm.MusicRNN)
-        .continueSequence(seedSeq, 16, this._temperature)
-        .then(r =>{
-          return this.fromNoteSequence(r, 16)
-          // console.log(r)
-          // console.log(this.fromNoteSequence(r, 16))
-        })
-    } else {
-      return null
+  public startPlayer(input: mm.INoteSequence, bpm?: number) {
+
+    if (!this._player.isPlaying()) {
+      this._player.start(input, bpm);
     }
     
   }
 
+  public stopPlayer() {
+    if(this._player.isPlaying()){
+      this._player.stop();
+    }
+    
+  }
+
+  public async generateNewDrumPart(seed: any, length?: number) {
+    this._logText.setText(`Generating drum pattern from ${this.resolveModelText(this._model_type)}`)
+    if(this._model_type === MLModels.RNN){
+      if(this._seq_model.isInitialized()){
+        let seedSeq = this.toNoteSequence(seed);
+  
+        return (this._seq_model as mm.MusicRNN)
+          .continueSequence(seedSeq, 16, this._temperature)
+          .then(r =>{
+            return this.fromNoteSequence(r, 16)
+          })
+          
+      } else {
+        this._logText.setText('ML Model not initialised.')
+      }
+    }
+    
+    
+  }
 
   toNoteSequence(pattern) {
     let self = this
@@ -297,8 +396,6 @@ export default class MachineMusicMan {
     }
     return res;
   }
-
-
 
 
 }

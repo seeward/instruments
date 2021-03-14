@@ -19,7 +19,10 @@ export default class DrumPad extends Phaser.GameObjects.Container {
     volText: Phaser.GameObjects.Text;
     loopIndex: number;
     patternLoop: Loop<any>;
-    constructor(scene: Phaser.Scene, x: number, y: number, sound: string, helpText?: Phaser.GameObjects.Text);
+    i: number;
+    constructor(scene: Phaser.Scene, x: number, y: number, sound: string, player?: Player, helpText?: Phaser.GameObjects.Text);
+    setUpSounds(sound: string, player: Player): void;
+    getPlayer(): Player;
     loadSound(sound: string): Promise<Player>;
     onDestroy(): void;
     initSeqArray(): any[];

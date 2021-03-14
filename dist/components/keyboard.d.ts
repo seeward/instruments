@@ -6,8 +6,10 @@ import 'webmidi';
 import 'navigator';
 import SynthManager from './synthManager';
 import Drums from './sampler';
+import MachineMusicMan from './mlmusician';
 export default class KeyBoard extends Phaser.GameObjects.Container {
     _scales_: any[];
+    _ml_pattern_generator: MachineMusicMan;
     synth: PluckSynth | PolySynth | FMSynth | AMSynth | MembraneSynth;
     synths: any[];
     currentSynthIndex: number;
@@ -39,18 +41,17 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     synthManager: SynthManager;
     drums: Drums;
     helpText: Phaser.GameObjects.Text;
-    constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth, helpText?: Phaser.GameObjects.Text);
+    logText: Phaser.GameObjects.Text;
+    constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text);
     initSynths(): Promise<void>;
+    getSynth(): PluckSynth | PolySynth<import("tone").Synth<import("tone").SynthOptions>> | FMSynth | AMSynth | MembraneSynth;
+    createAIPatterns(): Promise<void>;
     playSequence(seq: {
         notes: any[];
     }): void;
     addNoteLengthControls(): void;
     convertXtoVolume(x: number): number;
-    getBetweenZeroAndOne(val: any, max: any, min: any): number;
-    convertXToEffectParam1(x: number): number;
-    convertYToEffectParam2(y: number): number;
     addMetronome(): void;
-    addEffectControls(): void;
     getMIDIMessage(midiMessage: any): void;
     noteMidiToString(n: any): string;
     playMidiNote(t: any, noteObject: any): void;
