@@ -45,8 +45,9 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     constructor(scene: Phaser.Scene, x: number, y: number, drums?: Player[], bass?: MonoSynth, keys?: PluckSynth | PolySynth | FMSynth | AMSynth | MembraneSynth, helpText?: Phaser.GameObjects.Text);
     initEffects(): void;
     getBetweenZeroAndOne(val: any, max: any, min: any): number;
-    convertXToEffectParam1(x: number): number;
-    convertYToEffectParam2(y: number): number;
+    map: (value: any, x1: any, y1: any, x2: any, y2: any) => any;
+    convertXToEffectParam1(x: number, type: string): any;
+    convertYToEffectParam2(y: number): any;
     getEffectParams(eff: string): string[];
     addEffectControls(): void;
     effect(effect: any): void;

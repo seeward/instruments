@@ -105,38 +105,65 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     getBetweenZeroAndOne(val, max, min) {
         return (val - min) / (max - min);
     }
-    convertXToEffectParam1(x: number) {
-        // console.log(x)
+    map = (value, x1, y1, x2, y2) => (value - x1) * (y2 - x2) / (y1 - x1) + x2;
+    convertXToEffectParam1(x: number, type: string) {
+        //console.log(x)
+        switch (type) {
+            case 'Delay':
+                // delayTime in seconds 
+                return this.map(x, 13, 87, 0, 3)
+                break;
+            case 'Reverb':
+                // decay in time in seconds
+                return this.map(x, 13, 87, 0, 1)
+                break;
+            case 'Phaser':
+                // frequency between 100 and 700
+                return this.map(x, 13, 87, 100, 700)
+                break;
+            case 'Distortion':
+                // distortion level between 1 and 0
+                return this.map(x, 13, 87, 0, 1)
+                break;
+            case 'Autowah':
+                // sensitivity in dbs - between 0 and -30
+                return this.map(x, 13, 87, -30, 1)
+                break;
+            case 'Chorus':
+                // depth normal range between 0 and 1
+                return this.map(x, 13, 87, 0, 1)
+                break;
+        }
         return 1 / Math.floor(x) * 10
     }
     convertYToEffectParam2(y: number) {
-        console.log(y)
-        return Math.floor(y) / 100
+        // wet between 0 and 1
+        return this.map(y, 9, 40, 0, 1)
     }
-    getEffectParams(eff: string){
+    getEffectParams(eff: string) {
 
-            switch (eff) {
-                case 'Delay':
-                    return ['delayTime', 'wet']
-                    break;
-                case 'Distortion':
-                    return ['distortion', 'wet']
-                    break;
-                case 'Reverb':
-                    return ['decay', 'wet']
-                    break;
-                case 'Chorus':
-                    return ['depth', 'wet']
-                    break
-                case 'Phaser':
-                    return ['baseFrequency', 'wet']
-                    break;
-                case 'Autowah':
-                    return ['sensitivity', 'wet']
-                    break;
+        switch (eff) {
+            case 'Delay':
+                return ['delayTime', 'wet']
+                break;
+            case 'Distortion':
+                return ['distortion', 'wet']
+                break;
+            case 'Reverb':
+                return ['decay', 'wet']
+                break;
+            case 'Chorus':
+                return ['depth', 'wet']
+                break
+            case 'Phaser':
+                return ['baseFrequency', 'wet']
+                break;
+            case 'Autowah':
+                return ['sensitivity', 'wet']
+                break;
 
-            }  
-        
+        }
+
     }
     addEffectControls() {
         this.effectBG = this.scene.add.rectangle(this.x + 200, this.y, 100, 100, 0xc1c1c1, 1).setOrigin(0).setDepth(1).setStrokeStyle(2, 0x000000, 1)
@@ -147,40 +174,35 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             .on('pointerout', () => { this.effectStick.setFillStyle(generateColor()); this.helpText.setText("") })
             .setInteractive({ useHandCursor: true, draggable: true })
             .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
-                if(this.activePad){
+                if (this.activePad) {
                     let params = this.getEffectParams(this.effects[this.activePad]);
-                    // console.log(params);
-    
                     let x = pointer.position.x - this.effectBG.x
                     let y = pointer.position.y - this.effectBG.y
-                    // console.log(y)
-                    if (x < 0) {
-                        x = 0
+                    if (y < 9) {
+                        y = 9
                     }
-                    if (x > 100) {
-                        x = 100
+                    if (y > 40) {
+                        y = 40
                     }
-                    if (y < 0) {
-                        y = 0
+                    if (x > 87) {
+                        x = 87
                     }
-                    if (y > 100) {
-                        y = 100
+                    if (x < 13) {
+                        x = 13
                     }
-                    let X = this.convertXToEffectParam1(x);
+       
+                    let X = this.convertXToEffectParam1(x, this.effects[this.activePad]);
                     let Y = this.convertYToEffectParam2(y);
-    
-    
-    
-                    this.helpText.setText(`${X.toFixed(2)} ${params[0]} ${Y} ${params[1]}`)
+                    // console.log(Y);
+                    this.helpText.setText(`${X.toFixed(2)} ${params[0]} ${Y.toFixed(2)} ${params[1]}`)
                     this.effectObjects[this.activePad].set({
                         [`${params[0]}`]: X,
                         [`${params[1]}`]: Y
-                        
                     })
                     this.effectStick.x = pointer.position.x
                     this.effectStick.y = pointer.position.y
                 }
-                
+
 
             })
 
@@ -192,54 +214,54 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     effect(effect: any) {
         throw new Error("Method not implemented.");
     }
-    connectEffect(dest: string){
+    connectEffect(dest: string) {
         console.log(this.connections[dest].indexOf(this.effects[this.activePad]))
 
-        if(this.connections[dest].indexOf(this.effects[this.activePad]) === -1){
+        if (this.connections[dest].indexOf(this.effects[this.activePad]) === -1) {
             this.connections[dest].push(this.effects[this.activePad]);
             console.log(`connecting: ${this.effects[this.activePad]}`)
             console.log(`object: ${this.effectObjects[this.activePad]}`)
             console.log(`dest: ${dest}`)
-            switch(dest){
+            switch (dest) {
                 case 'keys':
-                this.keys.chain(this.effectObjects[this.activePad]);
-                break;
+                    this.keys.chain(this.effectObjects[this.activePad]);
+                    break;
                 case 'drums':
-                this.drums.forEach((eachDrum)=>{ eachDrum.chain(this.effectObjects[this.activePad])})
-                break;
+                    this.drums.forEach((eachDrum) => { eachDrum.chain(this.effectObjects[this.activePad]) })
+                    break;
                 case 'bass':
-                this.bass.chain(this.effectObjects[this.activePad]);
-                break;
-    
+                    this.bass.chain(this.effectObjects[this.activePad]);
+                    break;
+
             }
         } else {
             this.disconnectEffect(dest);
         }
-        
-        
-    }
-    disconnectEffect(dest: string){
 
-        switch(dest){
+
+    }
+    disconnectEffect(dest: string) {
+
+        switch (dest) {
             case 'keys':
-            this.keys.disconnect(this.effectObjects[this.activePad]);
-            break;
+                this.keys.disconnect(this.effectObjects[this.activePad]);
+                break;
             case 'drums':
-            this.drums.forEach((eachDrum)=>{ eachDrum.disconnect(this.effectObjects[this.activePad])})
-            break;
+                this.drums.forEach((eachDrum) => { eachDrum.disconnect(this.effectObjects[this.activePad]) })
+                break;
             case 'bass':
-            this.bass.disconnect(this.effectObjects[this.activePad]);
-            break;
+                this.bass.disconnect(this.effectObjects[this.activePad]);
+                break;
 
         }
-        this.connections[dest] = this.connections[dest].filter((effect)=>{
+        this.connections[dest] = this.connections[dest].filter((effect) => {
             return effect !== this.effects[this.activePad]
         })
     }
-    disconnectAll(){
-        Object.keys(this.connections).forEach((eachConnect)=>{
+    disconnectAll() {
+        Object.keys(this.connections).forEach((eachConnect) => {
             this.connections[eachConnect].forEach(effectKey => {
-                if(eachConnect === 'drums'){
+                if (eachConnect === 'drums') {
 
                 } else {
                     this[eachConnect].disconnect(this.effectObjects[this.activePad]);
@@ -248,7 +270,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             });
         })
         this.keys.disconnect(this.effectObjects[this.activePad]);
-        this.drums.forEach((eachDrum)=>{ eachDrum.disconnect(this.effectObjects[this.activePad])})
+        this.drums.forEach((eachDrum) => { eachDrum.disconnect(this.effectObjects[this.activePad]) })
         this.bass.disconnect(this.effectObjects[this.activePad]);
     }
     createSamplerControls() {
@@ -266,7 +288,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
         this.keysBtn = this.scene.add.rectangle(this.x + 125, this.y, 75, 33, generateColor(), 1).setDepth(1).setOrigin(0)
             .setStrokeStyle(2, 0x000000, 1).setDepth(1).setOrigin(0).setInteractive({ useHandCursor: true })
             .on('pointerover', () => {
-                    this.helpText.setText('Add/Remove Selected Effect to Keyboard')
+                this.helpText.setText('Add/Remove Selected Effect to Keyboard')
             })
             .on('pointerout', () => {
                 this.helpText.setText('')
@@ -278,7 +300,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
         this.drumsBtn = this.scene.add.rectangle(this.x + 125, this.y + 33, 75, 33, generateColor(), 1).setDepth(1).setOrigin(0)
             .setStrokeStyle(2, 0x000000, 1).setDepth(1).setOrigin(0).setInteractive({ useHandCursor: true })
             .on('pointerover', () => {
-                    this.helpText.setText('Add/RemoveSelected Effect to Drums')
+                this.helpText.setText('Add/RemoveSelected Effect to Drums')
             })
             .on('pointerout', () => {
                 this.helpText.setText('')
@@ -286,13 +308,13 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             .on('pointerdown', () => {
 
                 this.connectEffect('drums')
-               
+
             })
 
         this.bassBtn = this.scene.add.rectangle(this.x + 125, this.y + 66, 75, 33, generateColor(), 1).setDepth(1).setOrigin(0)
             .setStrokeStyle(2, 0x000000, 1).setDepth(1).setOrigin(0).setInteractive({ useHandCursor: true })
             .on('pointerover', () => {
-                    this.helpText.setText('Add/Remove Selected Effect to Bass')
+                this.helpText.setText('Add/Remove Selected Effect to Bass')
             })
             .on('pointerout', () => {
                 this.helpText.setText('')
@@ -300,10 +322,10 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             .on('pointerdown', () => {
 
                 this.connectEffect('bass')
-               
+
             })
 
-            
+
         this.pads = ['pad0', 'pad1', 'pad2', 'pad3', 'pad4', 'pad5'];
         let xPadd = 0;
         let yPadd = 0;
