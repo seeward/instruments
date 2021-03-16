@@ -1,5 +1,6 @@
 import { AMSynth, AutoWah, Chorus, Delay, Distortion, FMSynth, MembraneSynth, MonoSynth, Phaser as _phaser, PingPongDelay, Player, PluckSynth, PolySynth } from "tone";
 import 'phaser';
+import KeyBoard from "./keyboard";
 export declare enum Pads {
     pad0 = 0,
     pad1 = 1,
@@ -15,11 +16,13 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     pad3: Phaser.GameObjects.Rectangle;
     pad4: Phaser.GameObjects.Rectangle;
     pad5: Phaser.GameObjects.Rectangle;
+    keyBoard: KeyBoard;
     activePad: number | undefined;
     pads: string[];
     muted: boolean;
     effects: string[];
     helpText: Phaser.GameObjects.Text;
+    selectedText: Phaser.GameObjects.Text;
     effectBG: Phaser.GameObjects.Rectangle;
     effectBGInner: Phaser.GameObjects.Rectangle;
     effectStick: Phaser.GameObjects.Rectangle;
@@ -42,7 +45,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     };
     drumsBtn: Phaser.GameObjects.Rectangle;
     bassBtn: Phaser.GameObjects.Rectangle;
-    constructor(scene: Phaser.Scene, x: number, y: number, drums?: Player[], bass?: MonoSynth, keys?: PluckSynth | PolySynth | FMSynth | AMSynth | MembraneSynth, helpText?: Phaser.GameObjects.Text);
+    constructor(scene: Phaser.Scene, x: number, y: number, drums?: Player[], bass?: MonoSynth, keys?: KeyBoard, helpText?: Phaser.GameObjects.Text);
     initEffects(): void;
     getBetweenZeroAndOne(val: any, max: any, min: any): number;
     map: (value: any, x1: any, y1: any, x2: any, y2: any) => any;
@@ -53,8 +56,10 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     effect(effect: any): void;
     connectEffect(dest: string): void;
     disconnectEffect(dest: string): void;
+    setSelectedText(t: string): void;
     disconnectAll(): void;
-    createSamplerControls(): void;
+    createEffectControls(): void;
+    returnEffectsOnDest(effect: string): string;
     muteAllPads(): void;
     unMuteAllPads(): void;
     update(): void;

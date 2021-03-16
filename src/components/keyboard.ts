@@ -1,4 +1,4 @@
-import { AMSynth, Chorus, Delay, Distortion, Filter, FMSynth, MembraneSynth, now, PingPongDelay, PluckSynth, PolySynth, Reverb, Transport } from 'tone';
+import { AMSynth, Chorus, Delay, Distortion, Filter, FMSynth, MembraneSynth, MonoSynth, now, PingPongDelay, PluckSynth, PolySynth, Reverb, Transport } from 'tone';
 import 'phaser';
 import { generateColor } from '../helpers/PhaserHelpers';
 import Metronome from './metronome';
@@ -47,6 +47,17 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text) {
     super(scene, x, y);
+
+    let handler = () => {
+      // play note so far it can't be heard
+      this.createKeyboardControls(this);
+      
+      // remove this handler to save memory 
+      document.removeEventListener('click', handler, false)
+    }
+    // this is to enable web audio when page is clicked
+    document.addEventListener('click', handler)
+
     this.helpText = helpText ? helpText : null
     this.logText = logText ? logText : null
     this.synthManager = new SynthManager(this.scene, 0, 0, this.helpText);
@@ -112,22 +123,20 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       self.getMIDIMessage(event.detail);
     });
 
-    if(recorder){
+    if (recorder) {
       this.recorder = recorder
     }
-    
+
     this._ml_pattern_generator = new MachineMusicMan(MLModels.RNN, ModelCheckpoints.MelodyRNN, this.helpText, logText)
     this._ml_pattern_generator.initRecorder();
     let defaultSynth = synth ? synth : new FMSynth().toDestination()
     this.synths.push(defaultSynth);
     this.initSynths();
-    this.synth = this.synths[0];
-    this.createKeyboardControls(this);
     this.addVolumeControls();
-    this.addToneControls();
     this.addNoteLengthControls()
     this.addMetronome();
     this.addBubbleControl();
+    this.addToneControls();
 
   }
 
@@ -135,14 +144,14 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     if (this.synthManager) {
       let ss = await this.synthManager.getSynths()
       this.synths = ss
-      this.synth = this.synths.find((eachSynth) => { 
-        return eachSynth.name === 'FMSynth' })
+      this.synth = ss[0];
+
     } else {
       this.synths.push(new FMSynth().toDestination(), new PluckSynth({ dampening: 1000, attackNoise: 2, release: 750 }).toDestination(), new MembraneSynth({ volume: -10 }).toDestination())
-      
+
     }
   }
-  getSynth(){
+  getSynth() {
     return this.synth
   }
   async createAIPatterns() {
@@ -352,7 +361,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       })
       .on('pointerdown', async () => {
         this.makeBubbles = !this.makeBubbles
-        
+
         //this._ml_pattern_generator._recorder.isRecording() ? this._ml_pattern_generator.stopRecorder() : this._ml_pattern_generator.startRecorder()
         // await this.createAIPatterns();
       })
@@ -387,6 +396,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
 
           this.makeBubble(keysArray[0].x, keysArray[0].y - 10)
           keysArray[0].setAlpha(1);
+          
           this.synth.triggerAttackRelease(this._scales_[t.scaleIndex][0], this.noteLength);
         },
         t
@@ -685,7 +695,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       this.volumeSlide.x = this.x + 600 - 12.5
     }
 
-    
+
     // this.metronome.update()
     // this.recorder.update()
   }

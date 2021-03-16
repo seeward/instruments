@@ -6,7 +6,7 @@ import starterLoops from './starterLoops';
 import MachineMusicMan, { ModelCheckpoints, MLModels } from '../components/mlmusician'
 import { forEachChild } from "typescript";
 
-interface SavedSequence { seqData: boolean[] }
+export interface SavedSequence { seqData: boolean[] }
 
 export default class DrumMachine extends Phaser.GameObjects.Container {
 
@@ -80,7 +80,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
     sequence: boolean[] = [];
     muted: boolean = false;
     pads: DrumPad[] = [];
-    sampleIndex: number = 0
+    sampleIndex: number = 1
     swing: number = 0
     showingSavedPatterns: boolean = false
     playButton: Phaser.GameObjects.Ellipse;
@@ -105,12 +105,10 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         "/assets/samples2/snare1.wav",
         "/assets/samples2/snare2.wav",
         "/assets/samples2/hihat3.wav",
-        // "/assets/samples2/ride.wav",
-        // "/assets/samples2/tom1.wav",
-        // "/assets/samples2/tom2.wav",
-        // "/assets/samples2/tom3.wav",
-        // "/assets/samples2/snare3.wav",
-        // "/assets/samples2/snatch.wav"
+        "/assets/samples2/hihat3.wav",
+        "/assets/samples/r8-Bongo Low.wav",
+        "/assets/samples/r8-Bongo High.wav",
+        "/assets/samples/r8-Cymbal.wav",
     ]]
     metronome: Metronome;
     delayControl: Phaser.GameObjects.Rectangle;
@@ -335,14 +333,14 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         })
         if (totalCheck.length > 0) {
             this.helpText.setText("Saving pattern...")
-            let name = prompt("Saved Pattern Name: (less than 25 chars) ");
+            let name = prompt("Saved Pattern Name: (less than 10 chars) ");
             if (name) {
                 this.savedSeq = this.pads.map((eachPad) => {
                     return {
                         seqData: eachPad.getSequence()
                     }
                 })
-                localStorage.setItem(`PATTERN_${name.substring(0, 24)}`, JSON.stringify(this.savedSeq))
+                localStorage.setItem(`ORIGINAL_${name.substring(0, 10)}`, JSON.stringify(this.savedSeq))
             }
         } else {
             this.helpText.setText("You must first edit the pattern to save it")
@@ -351,7 +349,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
 
     }
     loadSeq(id?: string) {
-        console.log(id)
+        // console.log(id)
         let savedSeq = JSON.parse(localStorage.getItem(id)) as SavedSequence[]
         // console.log(savedSeq)
         this.pads.forEach((eachPad, i) => {
@@ -491,6 +489,8 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
                 this.helpText.setText("")
             })
 
+            let mlshadow = this.scene.add.ellipse(this.x + 363, this.y + 13, 30, 30, 0x000000, .75).setDepth(2).setOrigin(0)
+        
 
         this.MLButton = this.scene.add.ellipse(this.x + 360, this.y + 10, 30, 30, generateColor()).setDepth(3).setOrigin(0)
             .setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
@@ -701,15 +701,15 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
 
     }
 
-    playSequence() {
-
-    }
-    initPads() {
-
-    }
 
     update() {
-     
+        if (this.volumeSlide.x < this.x - 15) {
+            this.volumeSlide.x = this.x - 15
+          }
+      
+          if (this.volumeSlide.x > this.x + this.bg.width - 12.5) {
+            this.volumeSlide.x = this.x + this.bg.width - 12.5
+          }
         this.pads.forEach((eachPad) => {
             eachPad.update()
         })

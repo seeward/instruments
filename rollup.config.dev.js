@@ -3,6 +3,8 @@ import resolve from 'rollup-plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import serve from 'rollup-plugin-serve';
 import typescript from 'rollup-plugin-typescript2';
+// import comlink from "@surma/rollup-plugin-comlink";
+// import omt from "@surma/rollup-plugin-off-main-thread";
 
 export default {
 
@@ -24,6 +26,7 @@ export default {
     },
 
     plugins: [
+        
         //  Toggle the booleans here to enable / disable Phaser 3 features:
         replace({
             'typeof CANVAS_RENDERER': JSON.stringify(true),
@@ -36,7 +39,7 @@ export default {
 
         //  Parse our .ts source files
         resolve({
-            extensions: [ '.ts', '.tsx' ]
+            extensions: [ '.ts', '.tsx', '.js' ]
         }),
 
         //  We need to convert the Phaser 3 CJS modules into a format Rollup can use:
@@ -54,7 +57,8 @@ export default {
 
         //  See https://www.npmjs.com/package/rollup-plugin-typescript2 for config options
         typescript(),
-
+        // comlink({useModuleWorkers: {format: 'esm'}}),
+        // omt(),
         //  See https://www.npmjs.com/package/rollup-plugin-serve for config options
         serve({
             open: true,

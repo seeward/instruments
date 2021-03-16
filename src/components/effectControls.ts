@@ -26,11 +26,13 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     pad3: Phaser.GameObjects.Rectangle;
     pad4: Phaser.GameObjects.Rectangle;
     pad5: Phaser.GameObjects.Rectangle;
+    keyBoard: KeyBoard;
     activePad: number | undefined = undefined;
     pads: string[];
     muted: boolean = false
     effects: string[] = ['Delay', 'Distortion', 'Reverb', 'Chorus', 'Phaser', 'Autowah']
     helpText: Phaser.GameObjects.Text
+    selectedText: Phaser.GameObjects.Text
     effectBG: Phaser.GameObjects.Rectangle;
     effectBGInner: Phaser.GameObjects.Rectangle;
     effectStick: Phaser.GameObjects.Rectangle;
@@ -54,13 +56,13 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     drumsBtn: Phaser.GameObjects.Rectangle;
     bassBtn: Phaser.GameObjects.Rectangle;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, drums?: Player[], bass?: MonoSynth, keys?: PluckSynth | PolySynth | FMSynth | AMSynth | MembraneSynth, helpText?: Phaser.GameObjects.Text) {
+    constructor(scene: Phaser.Scene, x: number, y: number, drums?: Player[], bass?: MonoSynth, keys?: KeyBoard, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
-        this.keys = keys
+        this.keyBoard = keys
         this.drums = drums
         this.bass = bass
         this.helpText = helpText ? helpText : null
-        this.createSamplerControls();
+        this.createEffectControls();
         this.initEffects();
         this.addEffectControls();
         this.scene.add.existing(this);
@@ -174,7 +176,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             .on('pointerout', () => { this.effectStick.setFillStyle(generateColor()); this.helpText.setText("") })
             .setInteractive({ useHandCursor: true, draggable: true })
             .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
-                if (this.activePad) {
+                if (this.activePad !== undefined) {
                     let params = this.getEffectParams(this.effects[this.activePad]);
                     let x = pointer.position.x - this.effectBG.x
                     let y = pointer.position.y - this.effectBG.y
@@ -207,7 +209,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             })
 
         this.effectStickInner = this.scene.add.ellipse(this.effectStick.x + 7.5, this.effectStick.y + 7.5, 10, 10, 0x000000, 1).setOrigin(0).setDepth(3)
-
+        this.selectedText = this.scene.add.text(this.x , this.y - 25, '', {fontSize: '12px', color: '#000000'})
 
 
     }
@@ -215,7 +217,10 @@ export default class EffectControls extends Phaser.GameObjects.Container {
         throw new Error("Method not implemented.");
     }
     connectEffect(dest: string) {
+        this.keys = this.keyBoard.getSynth()
+        console.log(this.keys)
         console.log(this.connections[dest].indexOf(this.effects[this.activePad]))
+        console.log(this.keys)
 
         if (this.connections[dest].indexOf(this.effects[this.activePad]) === -1) {
             this.connections[dest].push(this.effects[this.activePad]);
@@ -224,7 +229,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             console.log(`dest: ${dest}`)
             switch (dest) {
                 case 'keys':
-                    this.keys.chain(this.effectObjects[this.activePad]);
+                    this.keys.connect(this.effectObjects[this.activePad]);
                     break;
                 case 'drums':
                     this.drums.forEach((eachDrum) => { eachDrum.chain(this.effectObjects[this.activePad]) })
@@ -234,9 +239,13 @@ export default class EffectControls extends Phaser.GameObjects.Container {
                     break;
 
             }
+
+            this.setSelectedText(`${this.effects[this.activePad]} Effect - currently on: ${this.returnEffectsOnDest(this.effects[this.activePad])}`)
+
         } else {
             this.disconnectEffect(dest);
         }
+
 
 
     }
@@ -257,6 +266,12 @@ export default class EffectControls extends Phaser.GameObjects.Container {
         this.connections[dest] = this.connections[dest].filter((effect) => {
             return effect !== this.effects[this.activePad]
         })
+
+        this.setSelectedText(`${this.effects[this.activePad]} Effect - currently on: ${this.returnEffectsOnDest(this.effects[this.activePad])}`)
+
+    }
+    setSelectedText(t: string){
+        this.selectedText.setText(t)
     }
     disconnectAll() {
         Object.keys(this.connections).forEach((eachConnect) => {
@@ -273,17 +288,10 @@ export default class EffectControls extends Phaser.GameObjects.Container {
         this.drums.forEach((eachDrum) => { eachDrum.disconnect(this.effectObjects[this.activePad]) })
         this.bass.disconnect(this.effectObjects[this.activePad]);
     }
-    createSamplerControls() {
-        // background
+    createEffectControls() {
+
         this.scene.add.rectangle(this.x, this.y, 200, 100, generateColor(), 1).setDepth(1).setOrigin(0)
             .setStrokeStyle(2, 0x000000, 1)
-
-        // // mute /  unmute
-        // this.scene.add.ellipse(this.x + 155, this.y + 70, 20, 20, generateColor(), 1).setOrigin(0).setDepth(1)
-        //     .setStrokeStyle(3, 0x000000, 1).setInteractive({ useHandCursor: true })
-        //     .on('pointerdown', () => {
-        //         this.disconnectAll();
-        //     })
 
         this.keysBtn = this.scene.add.rectangle(this.x + 125, this.y, 75, 33, generateColor(), 1).setDepth(1).setOrigin(0)
             .setStrokeStyle(2, 0x000000, 1).setDepth(1).setOrigin(0).setInteractive({ useHandCursor: true })
@@ -300,7 +308,7 @@ export default class EffectControls extends Phaser.GameObjects.Container {
         this.drumsBtn = this.scene.add.rectangle(this.x + 125, this.y + 33, 75, 33, generateColor(), 1).setDepth(1).setOrigin(0)
             .setStrokeStyle(2, 0x000000, 1).setDepth(1).setOrigin(0).setInteractive({ useHandCursor: true })
             .on('pointerover', () => {
-                this.helpText.setText('Add/RemoveSelected Effect to Drums')
+                this.helpText.setText('Add/Remove Selected Effect to Drums')
             })
             .on('pointerout', () => {
                 this.helpText.setText('')
@@ -352,13 +360,17 @@ export default class EffectControls extends Phaser.GameObjects.Container {
                         console.log('into ' + i)
                         this.activePad = undefined;
                         this[pad].setFillStyle(generateColor(), 1);
+                        this.setSelectedText(``)
+
                         return;
                     }
 
                     // no pad selected -lets assign selected
                     if (this.activePad === undefined) {
-                        this[pad].setFillStyle(0xc1c1c1, 1);
                         this.activePad = i;
+                        this.setSelectedText(`${this.effects[this.activePad]} Effect - currently on: ${this.returnEffectsOnDest(this.effects[this.activePad])}`)
+                        this[pad].setFillStyle(0x000000, 1);
+                        
                     }
                 })
 
@@ -377,6 +389,15 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             }
         });
     }
+    returnEffectsOnDest(effect: string) {
+        let out:string = '';
+       Object.keys(this.connections).forEach((eachDest)=>{
+            if(this.connections[eachDest].indexOf(effect) !== -1){
+                out += ` : ${eachDest}`
+            }
+       })
+       return out
+    }
     muteAllPads() {
         for (var i = 0; i < this.pads.length; i++) {
             this[`pad${i}`].setFillStyle(0x00000, .5)
@@ -394,8 +415,8 @@ export default class EffectControls extends Phaser.GameObjects.Container {
             if (this.effectStick.x > this.effectBG.x + 65) {
                 this.effectStick.x = this.effectBG.x + 65
             }
-            if (this.effectStick.x < this.effectBG.x) {
-                this.effectStick.x = this.effectBG.x
+            if (this.effectStick.x < this.effectBG.x + 10) {
+                this.effectStick.x = this.effectBG.x + 10
             }
             if (this.effectStick.y > this.effectBG.y + 65) {
                 this.effectStick.y = this.effectBG.y + 65

@@ -20,6 +20,8 @@
     "homepage": "https://github.com/photonstorm/phaser3-typescript-project-template#readme",
     "dependencies": {
         "@magenta/music": "^1.21.0",
+        "@surma/rollup-plugin-comlink": "^0.3.0",
+        "@surma/rollup-plugin-off-main-thread": "^2.1.0",
         "@types/webmidi": "^2.0.4",
         "comlink": "^4.3.0",
         "howler": "^2.2.1",
@@ -32,6 +34,7 @@
     },
     "devDependencies": {
         "@rollup/plugin-replace": "^2.3.4",
+        "comlink-loader": "^2.0.0",
         "phaser": "^3.50.0",
         "rollup": "^2.35.1",
         "rollup-plugin-commonjs": "^10.1.0",
@@ -39,7 +42,6 @@
         "rollup-plugin-serve": "^1.1.0",
         "rollup-plugin-typescript2": "^0.29.0",
         "rollup-plugin-uglify": "^6.0.4",
-        "rollup-plugin-web-worker-loader": "^1.6.1",
         "typescript": "^4.1.5"
     }
 }

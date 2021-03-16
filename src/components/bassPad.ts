@@ -46,11 +46,11 @@ export default class BassPad extends DrumPad {
 
         for (var i = 0; i < this.seqLength; i++) { 
             let t = this.makeSeqCircle(i, xSpace, this.scene)
-            xSpace = xSpace + 22;
+            xSpace = xSpace + 15;
         }
 
-        this.onOff = this.scene.add.rectangle(this.x + 380, this.y + 15, 10, 10, generateColor(), 1)
-            .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0xffffff, 1)
+        this.onOff = this.scene.add.rectangle(this.x + 265, this.y + 15, 10, 10, generateColor(), 1)
+            .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
             .on('pointerdown', () => {
                 this.onOff.setFillStyle(this.allSelected ? 0xffffff : 0x000000, 1)
                 this.setAllSeqStepsOnOrOff();

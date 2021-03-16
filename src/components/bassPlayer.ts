@@ -1,9 +1,9 @@
 import 'phaser'
-import drumPad from './drumPad';
 import { generateColor } from '../helpers/PhaserHelpers';
 import { MonoSynth } from 'tone';
 import BassPad from './bassPad';
-
+import { mapRanges } from '../helpers/PhaserHelpers'
+import { SavedSequence } from './drumMachine';
 export default class BassPlayer extends Phaser.GameObjects.Container {
 
     bg: Phaser.GameObjects.Rectangle;
@@ -14,6 +14,15 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     resetButton: Phaser.GameObjects.Rectangle;
     volumeLine: Phaser.GameObjects.Rectangle;
     volumeSlide: Phaser.GameObjects.Ellipse;
+    controlBG: Phaser.GameObjects.Rectangle;
+    attack: Phaser.GameObjects.Rectangle;
+    decay: Phaser.GameObjects.Rectangle;
+    release: Phaser.GameObjects.Rectangle;
+    sustain: Phaser.GameObjects.Rectangle;
+    savedSeq: SavedSequence[];
+    patternLoaded: boolean;
+    aiButtonBG: Phaser.GameObjects.Rectangle;
+    aiButton: Phaser.GameObjects.Rectangle;
 
     constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
@@ -66,7 +75,7 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
         })
 
     }
-    getSynth(){
+    getSynth() {
         return this.synth
     }
     muteAll() {
@@ -82,31 +91,146 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     convertXtoVolume(x: number): number {
 
         return Math.floor((x / 10 * -1))
-      }
+    }
     addVolumeControls() {
         this.volumeLine = this.scene.add.rectangle(this.x, this.y, this.width, 5, 0x000000, .25).setOrigin(0).setDepth(1)
         this.volumeSlide = this.scene.add.ellipse(this.x - 12.5, this.y - 10, 25, 25, generateColor(), 1).setStrokeStyle(2, 0x000000, .5).setDepth(2)
-          .setOrigin(0).setInteractive({ useHandCursor: true, draggable: true })
-          .on('pointerover', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("BASS GAIN") })
-          .on('pointerout', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("") })
-          .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
-            this.volumeSlide.x = pointer.position.x
-            let adjustedX = this.convertXtoVolume(this.volumeSlide.x - this.x)
-            //console.log(adjustedX);
-            if (adjustedX > 20) {
-              adjustedX = 20
-            }
-            if (adjustedX < -90) {
-              adjustedX = -90
-            }
-            this.helpText.setText(`BASS GAIN: ${adjustedX} db`)
-            this.synth.set({ volume: adjustedX })
-          })
-      }
+            .setOrigin(0).setInteractive({ useHandCursor: true, draggable: true })
+            .on('pointerover', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("BASS GAIN") })
+            .on('pointerout', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("") })
+            .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+                this.volumeSlide.x = pointer.position.x
+                let adjustedX = this.convertXtoVolume(this.volumeSlide.x - this.x)
+                //console.log(adjustedX);
+                if (adjustedX > 20) {
+                    adjustedX = 20
+                }
+                if (adjustedX < -90) {
+                    adjustedX = -90
+                }
+                this.helpText.setText(`BASS GAIN: ${adjustedX} db`)
+                this.synth.set({ volume: adjustedX })
+            })
+    }
     makeControlSurface() {
         this.bg = this.scene.add.rectangle(this.x, this.y, 410, 150, generateColor(), .75)
             .setOrigin(0).setDepth(1).setStrokeStyle(2, 0x0000, 1);
-        
+        let shadow = this.scene.add.rectangle(this.x + 293, this.y + 13, 105, 130, 0x000000, .75)
+            .setOrigin(0).setDepth(1)
+        this.controlBG = this.scene.add.rectangle(this.x + 290, this.y + 10, 105, 130, generateColor(), 1)
+            .setOrigin(0).setDepth(2).setStrokeStyle(2, 0x0000, 1);
+
+
+        this.attack = this.scene.add.rectangle(this.x + 305, this.y + 25, 15, 5, 0x00000, 1)
+            .setDepth(3).setOrigin(0).setInteractive({ draggable: true, useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
+            .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+                let y = Math.floor(pointer.y - this.y)
+
+                console.log(y)
+                if (y < 25) {
+                    y = 25
+                }
+                if (y > 125) {
+                    y = 125
+                }
+                let Y = mapRanges(y, 25, 125, .001, 1)
+                this.helpText.setText(Y.toFixed(2) + " secs attack")
+                this.synth.set({ envelope: { attack: Y } })
+                this.attack.setY(y + this.y)
+            })
+            .on('pointerover', () => {
+                this.helpText.setText("Attack")
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
+
+        let bar1 = this.scene.add.rectangle(this.attack.x + this.attack.width / 2, this.attack.y, 2, 100, 0x000000, .5).setOrigin(0)
+            .setDepth(2)
+
+        this.decay = this.scene.add.rectangle(this.x + 325, this.y + 25, 15, 5, 0x00000, 1)
+            .setDepth(3).setOrigin(0).setInteractive({ draggable: true, useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
+            .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+                let y = Math.floor(pointer.y - this.y)
+
+                console.log(y)
+                if (y < 25) {
+                    y = 25
+                }
+                if (y > 125) {
+                    y = 125
+                }
+                let Y = mapRanges(y, 25, 125, .1, .9)
+                this.helpText.setText(Y.toFixed(2) + " secs decay")
+                this.synth.set({ envelope: { decay: Y } })
+                this.decay.setY(y + this.y)
+            })
+            .on('pointerover', () => {
+                this.helpText.setText("Decay")
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
+
+        let bar4 = this.scene.add.rectangle(this.decay.x + this.decay.width / 2, this.decay.y, 2, 100, 0x000000, .5).setOrigin(0)
+            .setDepth(2)
+
+        this.release = this.scene.add.rectangle(this.x + 345, this.y + 25, 15, 5, 0x00000, 1)
+            .setDepth(3).setOrigin(0).setInteractive({ draggable: true, useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
+            .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+                let y = Math.floor(pointer.y - this.y)
+
+                console.log(y)
+                if (y < 25) {
+                    y = 25
+                }
+                if (y > 125) {
+                    y = 125
+                }
+                let Y = mapRanges(y, 25, 125, 0, 5)
+                this.helpText.setText(Y.toFixed(2) + " secs release")
+                this.synth.set({ envelope: { release: Y } })
+                this.release.setY(y + this.y)
+            })
+            .on('pointerover', () => {
+                this.helpText.setText("Release")
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
+
+        let bar2 = this.scene.add.rectangle(this.release.x + this.release.width / 2, this.release.y, 2, 100, 0x000000, .5).setOrigin(0)
+            .setDepth(2)
+
+
+
+        this.sustain = this.scene.add.rectangle(this.x + 365, this.y + 25, 15, 5, 0x00000, 1)
+            .setDepth(3).setOrigin(0).setInteractive({ draggable: true, useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
+            .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+                let y = Math.floor(pointer.y - this.y)
+
+                console.log(y)
+                if (y < 25) {
+                    y = 25
+                }
+                if (y > 125) {
+                    y = 125
+                }
+                let Y = mapRanges(y, 25, 125, 0, 1)
+                this.helpText.setText(Y.toFixed(2) + " sustain")
+                this.synth.set({ envelope: { sustain: Y } })
+                this.sustain.setY(y + this.y)
+            })
+            .on('pointerover', () => {
+                this.helpText.setText("Sustain")
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
+
+        let bar3 = this.scene.add.rectangle((this.sustain.x + this.sustain.width / 2), this.sustain.y, 2, 100, 0x000000, .5).setOrigin(0)
+            .setDepth(2)
+
         this.resetButton = this.scene.add.rectangle(this.x + 405, this.y + 10, 15, 15, generateColor())
             .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
             .on('pointerdown', () => {
@@ -118,6 +242,33 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
             .on('pointerout', () => {
                 this.helpText.setText("")
             })
+
+        this.aiButtonBG = this.scene.add.rectangle(this.x + 410, this.y + 30, 25, 50, generateColor())
+            .setDepth(3).setOrigin(0).setStrokeStyle(1, 0x000000, 1)
+            
+            
+        let aiBtnShadow = this.scene.add.ellipse(this.x + 417, this.y + 13, 20, 20, 0x000000, .5)
+            .setDepth(3).setOrigin(0) 
+        this.aiButton = this.scene.add.ellipse(this.x + 415, this.y + 10, 20, 20, generateColor())
+            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
+            .on('pointerdown', () => {
+                
+            })
+            .on('pointerover', () => {
+
+                this.helpText.setText("Generate AI Bass pattern");
+
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
+
+        let hori1 = this.scene.add.rectangle(this.x + 77, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
+            .setDepth(2)
+        let hori2 = this.scene.add.rectangle(this.x + 137, this.y + 10, 1, 135, 0xff0000, .25).setOrigin(0)
+            .setDepth(2)
+        let hori3 = this.scene.add.rectangle(this.x + 197, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
+            .setDepth(2)
     }
     clearAll() {
         console.log('clearing all')
@@ -126,7 +277,66 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
             eachPad.clear()
         })
     }
+    saveSeq() {
+
+        let checkEdited = this.pads.map((eachPad) => {
+            return {
+                passed: eachPad.getSequence().find((eachOne) => { return eachOne === true }) !== undefined
+            }
+        })
+        let totalCheck = checkEdited.filter((eachOne) => {
+            return eachOne.passed === true
+        })
+        if (totalCheck.length > 0) {
+            this.helpText.setText("Saving pattern...")
+            let name = prompt("Saved Pattern Name: (less than 10 chars) ");
+            if (name) {
+                this.savedSeq = this.pads.map((eachPad) => {
+                    return {
+                        seqData: eachPad.getSequence()
+                    }
+                })
+                localStorage.setItem(`BASS_${name.substring(0, 10)}`, JSON.stringify(this.savedSeq))
+            }
+        } else {
+            this.helpText.setText("You must first edit the bass pattern to save it")
+        }
+
+
+    }
+    loadSeq(id?: string) {
+        // console.log(id)
+        let savedSeq = JSON.parse(localStorage.getItem(id)) as SavedSequence[]
+        // console.log(savedSeq)
+        this.pads.forEach((eachPad, i) => {
+            // console.log(savedSeq[i])
+            if (savedSeq[i]) {
+                eachPad.setSequence(savedSeq[i].seqData)
+            }
+        });
+        this.patternLoaded = true
+
+
+    }
+    loadSavedKeys() {
+        // console.log(Object.keys(localStorage))
+        return Object.keys(localStorage).filter((eachKey) => {
+
+            return eachKey.split('_')[0] === 'BASS'
+        }
+
+        )
+    }
     update() {
+        if (this.volumeSlide.x < this.x - 15) {
+            this.volumeSlide.x = this.x - 15
+        }
+
+        if (this.volumeSlide.x > this.x + this.bg.width - 12.5) {
+            this.volumeSlide.x = this.x + this.bg.width - 12.5
+        }
+
+
         this.pads.forEach((eachPad) => {
             eachPad.update()
         })
