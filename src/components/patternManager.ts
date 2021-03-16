@@ -8,12 +8,14 @@ export default class PatternManager extends Phaser.GameObjects.Container {
     helpText: Phaser.GameObjects.Text;
     pads: PatternPad[] = [];
     resetBtn: Phaser.GameObjects.Ellipse;
+    size: string;
 
 
-    constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text) {
+    constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, size: string = '50') {
         super(scene, x, y);
         this.helpText = helpText
         this.drumMachine = drumMachine
+        this.size = size
         this.addPads();
         this.scene.add.existing(this);
     }

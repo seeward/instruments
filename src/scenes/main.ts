@@ -9,6 +9,7 @@ import BassPlayer from '../components/bassPlayer';
 import TransportControl from '../components/transportControl';
 import EffectControls  from "../components/effectControls";
 import PatternManager from '../components/patternManager';
+import BassPatternManager from '../components/bassPatternManager';
 
 export default class DashboardScene extends Phaser.Scene {
 
@@ -27,6 +28,7 @@ export default class DashboardScene extends Phaser.Scene {
     footer2: Phaser.GameObjects.Rectangle;
     bg1: Phaser.GameObjects.Rectangle;
     patterns: PatternManager;
+    bassPatterns: BassPatternManager;
 
     constructor() {
         super({ key: "DashboardScene" });   
@@ -50,10 +52,12 @@ export default class DashboardScene extends Phaser.Scene {
         this.drumMachine = new DrumMachine(this, 25,25, this.helpText, this.logText);
         this.synth = new FMSynth({volume: -20}).toDestination()
         this.keys = new KeyBoard(this, 600, 150, null, delay, this.synth, this.helpText, this.logText).setDepth(1)
-        this.bassPlayer_ = new BassPlayer(this, 25, 440, this.helpText);
+        this.bassPlayer_ = new BassPlayer(this, 25, 440, this.helpText, this.logText);
         this.transport_ = new TransportControl(this, 1050, 525,this.helpText)
         this.effects = new EffectControls(this, 750, 525, this.drumMachine.getPlayers(), this.bassPlayer_.getSynth(), this.keys, this.helpText)
-        this.patterns = new PatternManager(this,500, 25, this.drumMachine, this.helpText)
+        this.patterns = new PatternManager(this,485, 25, this.drumMachine, this.helpText)
+
+        this.bassPatterns = new BassPatternManager(this,485, 450, this.bassPlayer_, this.helpText)
     }
 
     update() {

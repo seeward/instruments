@@ -4,6 +4,7 @@ import { MonoSynth } from 'tone';
 import BassPad from './bassPad';
 import { mapRanges } from '../helpers/PhaserHelpers'
 import { SavedSequence } from './drumMachine';
+import MachineMusicMan, { MLModels, ModelCheckpoints } from './mlmusician';
 export default class BassPlayer extends Phaser.GameObjects.Container {
 
     bg: Phaser.GameObjects.Rectangle;
@@ -23,15 +24,81 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     patternLoaded: boolean;
     aiButtonBG: Phaser.GameObjects.Rectangle;
     aiButton: Phaser.GameObjects.Rectangle;
+    generatedPattern: any[];
+    mlPatternGenerator: MachineMusicMan;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text) {
+    constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
+        this.mlPatternGenerator = new MachineMusicMan(MLModels.VAE, ModelCheckpoints.MelodyVAE, this.helpText, logText);
         this.setHelpText(helpText);
         this.makeControlSurface();
         this.attachSynth();
         this.makeSeqPads();
         this.addVolumeControls();
         this.scene.add.existing(this);
+    }
+    async getSeedLoop() {
+        console.log('1')
+        if (this.mlPatternGenerator.isInitialised()) {
+            console.log('2')
+
+            const seed = []
+            const finalConvertedSeed = []
+            // get the current sequence from each pad
+            this.pads.forEach((eachPad, i) => {
+                seed.push(eachPad.getSequence())
+            })
+            console.log(seed)
+
+            // break into 16 chunks with indexs
+            for (let i = 0; i < 16; i++) {
+                seed.forEach((eachSeq, ind) => {
+
+                    if (Array.isArray(finalConvertedSeed[i])) {
+
+                        if (eachSeq[i]) {
+                            finalConvertedSeed[i].push(ind)
+                        }
+
+                    } else {
+
+                        if (eachSeq[i]) {
+                            finalConvertedSeed[i] = []
+                            finalConvertedSeed[i].push(ind)
+                        } else {
+                            finalConvertedSeed[i] = []
+                        }
+
+                    }
+
+                })
+            }
+            console.log('3')
+
+            // call our ML model 
+            let newPart = await this.mlPatternGenerator.sampleModel(1);
+            console.log(newPart)
+            // check our results
+            let newSequences = [];
+            // if we got a new model as an array 
+            if (Array.isArray(newPart)) {
+                // break up the output from the ml model 
+                this.pads.forEach((eachPad, i) => {
+
+                    newPart.forEach((eachStep: any, stepIndx: number) => {
+                        console.log(eachStep)
+                    });
+
+                })
+                console.log(newSequences)
+
+                this.generatedPattern = newSequences;
+                // load the AI beat into the drum pads
+                this.loadGeneratedLoop(this.generatedPattern);
+
+            }
+        }
+
     }
     setHelpText(helpText: Phaser.GameObjects.Text) {
         this.helpText = helpText
@@ -243,25 +310,28 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
                 this.helpText.setText("")
             })
 
-        this.aiButtonBG = this.scene.add.rectangle(this.x + 410, this.y + 30, 25, 50, generateColor())
+        this.aiButtonBG = this.scene.add.rectangle(this.x + 410, this.y + 45, 35, 35, generateColor())
             .setDepth(3).setOrigin(0).setStrokeStyle(1, 0x000000, 1)
             
             
-        let aiBtnShadow = this.scene.add.ellipse(this.x + 417, this.y + 13, 20, 20, 0x000000, .5)
+        let aiBtnShadow = this.scene.add.ellipse(this.x + 419, this.y + 53, 20, 20, 0x000000, .5)
             .setDepth(3).setOrigin(0) 
-        this.aiButton = this.scene.add.ellipse(this.x + 415, this.y + 10, 20, 20, generateColor())
-            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
+        this.aiButton = this.scene.add.ellipse(this.x + 417, this.y + 50, 20, 20, generateColor())
+            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(1, 0x000000, 1)
             .on('pointerdown', () => {
-                
+                this.saveSeq();
             })
             .on('pointerover', () => {
 
-                this.helpText.setText("Generate AI Bass pattern");
+                this.helpText.setText("Save Bass pattern");
 
             })
             .on('pointerout', () => {
                 this.helpText.setText("")
             })
+            // let AIText = this.scene.add.text(this.aiButton.x + 4, this.aiButton.y + 5, 'AI', {fontSize:'10px', color: '#000000'})
+            // .setDepth(3).setOrigin(0)
+
 
         let hori1 = this.scene.add.rectangle(this.x + 77, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
             .setDepth(2)
@@ -289,14 +359,14 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
         })
         if (totalCheck.length > 0) {
             this.helpText.setText("Saving pattern...")
-            let name = prompt("Saved Pattern Name: (less than 10 chars) ");
+            let name = prompt("Saved Pattern label - 5 characters");
             if (name) {
                 this.savedSeq = this.pads.map((eachPad) => {
                     return {
                         seqData: eachPad.getSequence()
                     }
                 })
-                localStorage.setItem(`BASS_${name.substring(0, 10)}`, JSON.stringify(this.savedSeq))
+                localStorage.setItem(`BASS_${name.substring(0, 5)}`, JSON.stringify(this.savedSeq))
             }
         } else {
             this.helpText.setText("You must first edit the bass pattern to save it")
@@ -326,6 +396,16 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
         }
 
         )
+    }
+    loadGeneratedLoop(savedSeq) {
+        this.helpText.setText("AI generated bass line loaded")
+        this.pads.forEach((eachPad, i) => {
+            // console.log(savedSeq[i])
+            if (savedSeq[i]) {
+                eachPad.setSequence(savedSeq[i])
+            }
+
+        });
     }
     update() {
         if (this.volumeSlide.x < this.x - 15) {

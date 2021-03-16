@@ -283,7 +283,7 @@ export default class MachineMusicMan {
       this._sampled_seq = await (this._seq_model as mm.MusicVAE).sample(num, this._temperature)
       return this._sampled_seq
     } else {
-      return this._melody_seed
+      return null
     }
    
   }

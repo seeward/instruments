@@ -2,7 +2,7 @@ import { Player, Sequence } from "tone";
 import DrumPad from './drumPad';
 import Metronome from './metronome';
 import MachineMusicMan from '../components/mlmusician';
-interface SavedSequence {
+export interface SavedSequence {
     seqData: boolean[];
 }
 export default class DrumMachine extends Phaser.GameObjects.Container {
@@ -65,8 +65,5 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
     loadSeq(id?: string): void;
     loadSavedKeys(): string[];
     makeControls(): void;
-    playSequence(): void;
-    initPads(): void;
     update(): void;
 }
-export {};

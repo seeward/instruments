@@ -1,6 +1,8 @@
 import 'phaser';
 import { MonoSynth } from 'tone';
 import BassPad from './bassPad';
+import { SavedSequence } from './drumMachine';
+import MachineMusicMan from './mlmusician';
 export default class BassPlayer extends Phaser.GameObjects.Container {
     bg: Phaser.GameObjects.Rectangle;
     synth: MonoSynth;
@@ -15,7 +17,14 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     decay: Phaser.GameObjects.Rectangle;
     release: Phaser.GameObjects.Rectangle;
     sustain: Phaser.GameObjects.Rectangle;
-    constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text);
+    savedSeq: SavedSequence[];
+    patternLoaded: boolean;
+    aiButtonBG: Phaser.GameObjects.Rectangle;
+    aiButton: Phaser.GameObjects.Rectangle;
+    generatedPattern: any[];
+    mlPatternGenerator: MachineMusicMan;
+    constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text);
+    getSeedLoop(): Promise<void>;
     setHelpText(helpText: Phaser.GameObjects.Text): void;
     makeSeqPads(): void;
     attachSynth(): void;
@@ -26,5 +35,9 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     addVolumeControls(): void;
     makeControlSurface(): void;
     clearAll(): void;
+    saveSeq(): void;
+    loadSeq(id?: string): void;
+    loadSavedKeys(): string[];
+    loadGeneratedLoop(savedSeq: any): void;
     update(): void;
 }

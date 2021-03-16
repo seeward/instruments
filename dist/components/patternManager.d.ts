@@ -5,6 +5,7 @@ export default class PatternManager extends Phaser.GameObjects.Container {
     helpText: Phaser.GameObjects.Text;
     pads: PatternPad[];
     resetBtn: Phaser.GameObjects.Ellipse;
-    constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text);
+    size: string;
+    constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, size?: string);
     addPads(): void;
 }
