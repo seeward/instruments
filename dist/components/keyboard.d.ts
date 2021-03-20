@@ -1,4 +1,4 @@
-import { AMSynth, Chorus, Delay, Distortion, Filter, FMSynth, MembraneSynth, PingPongDelay, PluckSynth, PolySynth } from 'tone';
+import { AMSynth, Chorus, Delay, Distortion, Envelope, Filter, FMSynth, MembraneSynth, PingPongDelay, PluckSynth, PolySynth } from 'tone';
 import 'phaser';
 import Metronome from './metronome';
 import CustomRecorder from './recorder';
@@ -13,6 +13,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     synth: PluckSynth | PolySynth | FMSynth | AMSynth | MembraneSynth;
     synths: any[];
     currentSynthIndex: number;
+    scales: string[];
     soundSwitcher: Phaser.GameObjects.Ellipse;
     recorder: CustomRecorder;
     effect: Delay | PingPongDelay | Distortion | Filter | Chorus;
@@ -42,6 +43,19 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     drums: Drums;
     helpText: Phaser.GameObjects.Text;
     logText: Phaser.GameObjects.Text;
+    scalesBtn: Phaser.GameObjects.Rectangle;
+    showingScales: boolean;
+    savedCards: any;
+    savedText: any;
+    envBG: Phaser.GameObjects.Rectangle;
+    env: Envelope;
+    envBGShadow: Phaser.GameObjects.Rectangle;
+    muteEnv: Phaser.GameObjects.Rectangle;
+    envOn: boolean;
+    attack: Phaser.GameObjects.Rectangle;
+    release: Phaser.GameObjects.Rectangle;
+    decay: Phaser.GameObjects.Rectangle;
+    sustain: Phaser.GameObjects.Rectangle;
     constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text);
     initSynths(): Promise<void>;
     getSynth(): PluckSynth | PolySynth<import("tone").Synth<import("tone").SynthOptions>> | FMSynth | AMSynth | MembraneSynth;
@@ -53,6 +67,10 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     convertXtoVolume(x: number): number;
     addMetronome(): void;
     getMIDIMessage(midiMessage: any): void;
+    connectEnvelop(): void;
+    createEnvelopControls(): void;
+    disconnectEnvelope(): void;
+    setNewScale(num: number): void;
     noteMidiToString(n: any): string;
     playMidiNote(t: any, noteObject: any): void;
     addVolumeControls(): void;

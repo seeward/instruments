@@ -8,5 +8,6 @@ export default class BassPatternManager extends PatternManager {
     size: string;
     bassPlayer: BassPlayer;
     constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: BassPlayer, helpText?: Phaser.GameObjects.Text, size?: string);
+    getPads(): any[];
     addPads(): void;
 }

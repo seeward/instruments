@@ -8,6 +8,8 @@ import TransportControl from '../components/transportControl';
 import EffectControls from "../components/effectControls";
 import PatternManager from '../components/patternManager';
 import BassPatternManager from '../components/bassPatternManager';
+import HelpLayer from '../components/helpLayer';
+import Looper from '../components/looper';
 export default class DashboardScene extends Phaser.Scene {
     recorder: CustomRecorder;
     synth: any;
@@ -25,7 +27,20 @@ export default class DashboardScene extends Phaser.Scene {
     bg1: Phaser.GameObjects.Rectangle;
     patterns: PatternManager;
     bassPatterns: BassPatternManager;
+    helpLayer: HelpLayer;
+    introBG: Phaser.GameObjects.Rectangle;
+    introText: Phaser.GameObjects.Text;
+    bubbles: any[];
+    toneLogo: Phaser.GameObjects.Image;
+    magentaLogo: Phaser.GameObjects.Image;
+    phaserLogo: Phaser.GameObjects.Image;
+    cpLogo: Phaser.GameObjects.Image;
+    typescriptLogo: Phaser.GameObjects.Image;
+    webmidiLogo: Phaser.GameObjects.Image;
+    looper: Looper;
     constructor();
     create(): Promise<void>;
+    makeBubble(x: number, y: number): void;
+    createKeyboardControls(): void;
     update(): void;
 }

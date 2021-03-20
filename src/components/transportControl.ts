@@ -18,6 +18,7 @@ export default class TransportControl extends Phaser.GameObjects.Container {
     locationTextBeats: Phaser.GameObjects.Text;
     locationTextSixteenths: Phaser.GameObjects.Text;
     metronome: Metronome;
+    bgShadow: Phaser.GameObjects.Rectangle;
 
     constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
@@ -39,6 +40,8 @@ export default class TransportControl extends Phaser.GameObjects.Container {
         
     }
     createControls(){
+        // this.bgShadow = this.scene.add.rectangle(this.x+3, this.y+3,175, 100, 0x000000, 1).setDepth(2).setOrigin(0)
+        // .setStrokeStyle(2, 0x000000, .5);
         this.bg = this.scene.add.rectangle(this.x, this.y,175, 100, 0xffffff, 1).setDepth(2).setOrigin(0)
         .setStrokeStyle(2, 0x000000, 1);
         this.metronome = new Metronome(this.scene, this.bg.x + this.bg.width, this.bg.y, 110, 15 ,this.bg.height, this.helpText);

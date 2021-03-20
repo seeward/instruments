@@ -7,5 +7,6 @@ export default class PatternManager extends Phaser.GameObjects.Container {
     resetBtn: Phaser.GameObjects.Ellipse;
     size: string;
     constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, size?: string);
+    getPads(): any[];
     addPads(): void;
 }

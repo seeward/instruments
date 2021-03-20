@@ -13,6 +13,7 @@ export default class TransportControl extends Phaser.GameObjects.Container {
     locationTextBeats: Phaser.GameObjects.Text;
     locationTextSixteenths: Phaser.GameObjects.Text;
     metronome: Metronome;
+    bgShadow: Phaser.GameObjects.Rectangle;
     constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text);
     setHelpText(helpText: Phaser.GameObjects.Text): void;
     createChannels(): void;

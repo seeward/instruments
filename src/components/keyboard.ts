@@ -1,10 +1,11 @@
-import { AMSynth, Chorus, Delay, Distortion, Filter, FMSynth, MembraneSynth, MonoSynth, now, PingPongDelay, PluckSynth, PolySynth, Reverb, Transport } from 'tone';
+import { AmplitudeEnvelope, AMSynth, Chorus, Delay, Distortion, Envelope, Filter, FMSynth, MembraneSynth, MonoSynth, now, PingPongDelay, PluckSynth, PolySynth, Reverb, Transport } from 'tone';
 import 'phaser';
 import { generateColor } from '../helpers/PhaserHelpers';
 import Metronome from './metronome';
 import CustomRecorder from './recorder';
 import 'webmidi';
 import 'navigator';
+import { mapRanges } from '../helpers/PhaserHelpers'
 import SynthManager from './synthManager'
 import Drums from './sampler';
 import MachineMusicMan, { MLModels, ModelCheckpoints } from './mlmusician';
@@ -15,6 +16,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
   synth: PluckSynth | PolySynth | FMSynth | AMSynth | MembraneSynth
   synths: any[] = []
   currentSynthIndex: number = 0
+  scales: string[] = ["Cmaj / Amin", "Emaj / C#min", "Gmaj / Emin", "Amaj / F#min", "Dmin / Fmaj"]
   soundSwitcher: Phaser.GameObjects.Ellipse
   recorder: CustomRecorder
   effect: Delay | PingPongDelay | Distortion | Filter | Chorus
@@ -30,7 +32,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
   effectConnectFlag: boolean = false
   distConnectFlag: boolean = false
   metronome: Metronome
-  scaleIndex: number = 1
+  scaleIndex: number = 0
   tooltip: Phaser.GameObjects.Text;
   noteLength: any | number | string = '8n';
   eighth: Phaser.GameObjects.Rectangle
@@ -44,80 +46,117 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
   drums: Drums;
   helpText: Phaser.GameObjects.Text
   logText: Phaser.GameObjects.Text;
+  scalesBtn: Phaser.GameObjects.Rectangle;
+  showingScales: boolean = false;
+  savedCards: any = {};
+  savedText: any = {};
+  envBG: Phaser.GameObjects.Rectangle;
+  env: Envelope;
+  envBGShadow: Phaser.GameObjects.Rectangle;
+  muteEnv: Phaser.GameObjects.Rectangle;
+  envOn: boolean = false;
+  attack: Phaser.GameObjects.Rectangle;
+  release: Phaser.GameObjects.Rectangle;
+  decay: Phaser.GameObjects.Rectangle;
+  sustain: Phaser.GameObjects.Rectangle;
+
 
   constructor(scene: Phaser.Scene, x: number, y: number, recorder?: CustomRecorder, effect?: Delay | PingPongDelay | Distortion | Filter | Chorus, synth?: PolySynth | FMSynth | MembraneSynth | AMSynth, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text) {
     super(scene, x, y);
-
-    let handler = () => {
-      // play note so far it can't be heard
-      this.createKeyboardControls(this);
-      
-      // remove this handler to save memory 
-      document.removeEventListener('click', handler, false)
-    }
-    // this is to enable web audio when page is clicked
-    document.addEventListener('click', handler)
-
     this.helpText = helpText ? helpText : null
     this.logText = logText ? logText : null
     this.synthManager = new SynthManager(this.scene, 0, 0, this.helpText);
     this.scene.add.existing(this);
     this._scales_ = [
+
       [
-        "A4",
-        "B4",
         "C4",
         "D4",
         "E4",
         "F4",
         "G4",
-        "A5",
-        "B5",
+        "A4",
+        "B4",
         "C5",
         "D5",
         "E5",
         "F5",
         "G5",
+        "A5",
+        "B5",
+        "C6"
+      ],
+      [
+        "E4",
+        "F#4",
+        "G4",
+        "A4",
+        "B4",
+        "C#5",
+        "D#5",
+        "E5",
+        "F#5",
+        "G5",
+        "A5",
+        "B5",
+        "C#6",
+        "D#6",
+        "E6"
+      ],
+      [
+        "G4",
+        "A4",
+        "B4",
+        "C5",
+        "D5",
+        "E5",
+        "F#5",
+        "G5",
+        "A5",
+        "B5",
+        "C6",
+        "D6",
+        "E6",
+        "F#6",
+        "G6"
+      ],
+      [
+        "A4",
+        "B4",
+        "C#5",
+        "D5",
+        "E5",
+        "F#5",
+        "G#5",
+        "A5",
+        "B5",
+        "C#6",
+        "D6",
+        "E6",
+        "F#6",
+        "G#6",
         "A6"
       ],
       [
-        "C4",
         "D4",
-        "D#4",
+        "E4",
         "F4",
         "G4",
-        "G#4",
+        "A4",
         "A#4",
         "C5",
         "D5",
-        "D#5",
+        "E5",
         "F5",
         "G5",
-        "G#5",
+        "A5",
         "A#5",
-        "C6"
-      ],
-      ["C2", "D2", "E2", "F2", "G2", "A2", "B2", "C2"],
-      ["C3", "D3", "E3", "F3", "G3", "A3", "B3", "C3"],
-      [
-        "C4",
-        "D4",
-        "D#4",
-        "F4",
-        "G4",
-        "G#4",
-        "A#4",
-        "C5",
-        "D5",
-        "D#5",
-        "F5",
-        "G5",
-        "G#5",
-        "A#5",
-        "C6"
-      ],
-      ["C5", "D5", "ED#", "F5", "G5", "G#5", "A#5", "C6"]
+        "C6",
+        "D6"
+      ]
+
     ];
+
     let self = this;
     document.addEventListener("midiinput", function (event: any) {
       self.getMIDIMessage(event.detail);
@@ -131,12 +170,21 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
     this._ml_pattern_generator.initRecorder();
     let defaultSynth = synth ? synth : new FMSynth().toDestination()
     this.synths.push(defaultSynth);
+    this.env = new Envelope({
+      attack: 0.1,
+      decay: 0.2,
+      sustain: 1.0,
+      release: 0.8
+    }).toDestination();
+
     this.initSynths();
     this.addVolumeControls();
     this.addNoteLengthControls()
     this.addMetronome();
     this.addBubbleControl();
     this.addToneControls();
+    this.createEnvelopControls();
+    this.createKeyboardControls(this);
 
   }
 
@@ -269,6 +317,126 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
       velocity: velocity
     });
   }
+  connectEnvelop() {
+    this.envOn = true
+  }
+  createEnvelopControls() {
+
+    this.envBGShadow = this.scene.add.rectangle(this.x + 608, this.y + 3, 75, 130, 0x000000, .5)
+      .setOrigin(0).setDepth(3)
+    this.envBG = this.scene.add.rectangle(this.x + 605, this.y, 75, 130, generateColor(), 1)
+      .setOrigin(0).setDepth(3).setStrokeStyle(1, 0x000000, .5)
+
+    
+    this.attack = this.scene.add.rectangle(this.x + 615, this.y + 10, 10, 20, 0x000000, 1)
+      .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
+      .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+
+        let adjustedX = Math.floor(pointer.x - this.x)
+        console.log(adjustedX);
+        if (adjustedX > 661) {
+          adjustedX = 661
+        }
+        if (adjustedX < 615) {
+          adjustedX = 615
+        }
+        let Y = mapRanges(adjustedX, 615, 661, .001, 1)
+        this.helpText.setText(`Envelope: Attack: ${Y.toFixed(2)}`);
+        this.synth.set({ envelope: { attack: Y } });
+        this.attack.setX(adjustedX + this.x)
+      })
+      .on('pointerover', () => {
+        this.helpText.setText('Attack')
+      })
+      .on('pointerout', () => {
+        this.helpText.setText('')
+      })
+      let line1 = this.scene.add.rectangle(this.attack.x, this.attack.y + (this.attack.height / 2) - 2, 55, 3, 0x000000, .5).setOrigin(0).setDepth(3)
+
+    this.release = this.scene.add.rectangle(this.x + 615, this.y + 40, 10, 20, 0x000000, 1)
+      .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
+      .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+
+        let adjustedX = Math.floor(pointer.x - this.x)
+        console.log(adjustedX);
+        if (adjustedX > 661) {
+          adjustedX = 661
+        }
+        if (adjustedX < 615) {
+          adjustedX = 615
+        }
+        let Y = mapRanges(adjustedX, 615, 661, 0, 5)
+        this.helpText.setText(`Envelope: Release: ${Y.toFixed(2)}`);
+        this.synth.set({ envelope: { release: Y } });
+        this.release.setX(adjustedX + this.x)
+      })
+      .on('pointerover', () => {
+        this.helpText.setText('Release')
+      })
+      .on('pointerout', () => {
+        this.helpText.setText('')
+      })
+      let line2 = this.scene.add.rectangle(this.release.x, this.release.y + (this.release.height / 2) - 2, 55, 3, 0x000000, .5).setOrigin(0).setDepth(3)
+
+    this.decay = this.scene.add.rectangle(this.x + 615, this.y + 70, 10, 20, 0x000000, 1)
+      .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
+      .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+
+        let adjustedX = Math.floor(pointer.x - this.x)
+        console.log(adjustedX);
+        if (adjustedX > 661) {
+          adjustedX = 661
+        }
+        if (adjustedX < 615) {
+          adjustedX = 615
+        }
+        let Y = mapRanges(adjustedX, 615, 661, .1, .9)
+        this.helpText.setText(`Envelope: Decay: ${Y.toFixed(2)}`);
+        this.synth.set({ envelope: { decay: Y } });
+        this.decay.setX(adjustedX + this.x)
+      })
+      .on('pointerover', () => {
+        this.helpText.setText('Decay')
+      })
+      .on('pointerout', () => {
+        this.helpText.setText('')
+      })
+      let line3 = this.scene.add.rectangle(this.decay.x, this.decay.y + (this.decay.height / 2) - 2, 55, 3, 0x000000, .5).setOrigin(0).setDepth(3)
+
+    this.sustain = this.scene.add.rectangle(this.x + 615, this.y + 100, 10, 20, 0x000000, 1)
+      .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
+      .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+
+        let adjustedX = Math.floor(pointer.x - this.x)
+        console.log(adjustedX);
+        if (adjustedX > 661) {
+          adjustedX = 661
+        }
+        if (adjustedX < 615) {
+          adjustedX = 615
+        }
+        let Y = mapRanges(adjustedX, 615, 661, 0, 1)
+        this.helpText.setText(`Envelope: Sustain: ${Y.toFixed(2)}`);
+        this.synth.set({ envelope: { sustain: Y } });
+        this.sustain.setX(adjustedX + this.x)
+      })
+      .on('pointerover', () => {
+        this.helpText.setText('Sustain')
+      })
+      .on('pointerout', () => {
+        this.helpText.setText('')
+      })
+      let line4 = this.scene.add.rectangle(this.sustain.x, this.sustain.y + (this.sustain.height / 2) - 2, 55, 3, 0x000000, .5).setOrigin(0).setDepth(3)
+
+  }
+  disconnectEnvelope() {
+    this.synth.disconnect(this.env)
+    this.envOn = false
+  }
+  setNewScale(num: number) {
+    this.scaleIndex = num;
+    console.log(this._scales_[this.scaleIndex])
+  }
   noteMidiToString(n) {
     const noteName = [
       "C",
@@ -311,7 +479,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
   }
   addVolumeControls() {
     this.volumeLine = this.scene.add.rectangle(this.x, this.y, 600, 5, 0x000000, .25).setOrigin(0).setDepth(1)
-    this.volumeSlide = this.scene.add.ellipse(this.x - 12.5, this.y - 10, 25, 25, generateColor(), 1).setStrokeStyle(2, 0x000000, .5).setDepth(2)
+    this.volumeSlide = this.scene.add.ellipse(this.x - 12.5, this.y - 10, 25, 25, generateColor(), 1).setStrokeStyle(2, 0x000000, .5).setDepth(3)
       .setOrigin(0).setInteractive({ useHandCursor: true, draggable: true })
       .on('pointerover', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("KEYS GAIN") })
       .on('pointerout', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("") })
@@ -328,7 +496,75 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         this.helpText.setText(`KEYS GAIN: ${adjustedX} db`)
         this.synth.set({ volume: adjustedX })
       })
+
+    this.scalesBtn = this.scene.add.rectangle(this.x + 30, this.y - 15, 20, 10, generateColor())
+      .setDepth(2).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(1, 0x000000, 1)
+      .on('pointerdown', () => {
+        if (!this.showingScales) {
+          this.showingScales = true
+          if (this.scales.length > 0) {
+            this.savedCards['holder'] = this.scene.add.rectangle(this.scalesBtn.x + 20, this.scalesBtn.y - 100, 100, this.scales.length * 25, generateColor(), 1)
+              .setStrokeStyle(3, 0x000000, 1)
+              .setDepth(3).setOrigin(0)
+            let ySpace = 0;
+            this.scales.forEach((eachPattern, i) => {
+              console.log(eachPattern)
+              this.savedCards[i] = this.scene.add.rectangle(this.scalesBtn.x + 20, (this.scalesBtn.y - 100) + ySpace, 100, 25, 0x000000, .5)
+                .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true })
+                .on('pointerover', () => {
+                  this.savedCards[i].setFillStyle(0x000000, 1)
+                })
+                .on('pointerout', () => {
+                  this.savedCards[i].setFillStyle(0x000000, .5)
+
+                })
+                .on('pointerdown', () => {
+                  this.setNewScale(i)
+                  this.showingScales = false
+                  this.savedCards[i].setFillStyle(0xc1c1c1, 1)
+
+                  Object.keys(this.savedCards).forEach((eachCard) => {
+                    this.savedCards[eachCard].destroy()
+                  })
+
+                  Object.keys(this.savedText).forEach((eachText) => {
+                    this.savedText[eachText].destroy()
+                  })
+
+
+                })
+
+              this.savedText[i] = this.scene.add.text(this.savedCards[i].x + 5, this.savedCards[i].y + 5, eachPattern, { fontSize: '12px', color: '#ffffff' }).setDepth(3).setOrigin(0)
+
+              ySpace += 25
+
+            })
+          }
+
+
+
+        } else {
+          this.showingScales = false
+
+          Object.keys(this.savedCards).forEach((eachCard) => {
+            this.savedCards[eachCard].destroy()
+          })
+
+          Object.keys(this.savedText).forEach((eachText) => {
+            this.savedText[eachText].destroy()
+          })
+        }
+
+
+      })
+      .on('pointerover', () => {
+        this.helpText.setText("Change Keyboard Scale");
+      })
+      .on('pointerout', () => {
+        this.helpText.setText("")
+      })
   }
+
   addToneControls() {
     this.soundSwitcher = this.scene.add.ellipse(this.x, this.y + 200, 40, 40, generateColor(), 1).setInteractive({ useHandCursor: true })
       .on('pointerover', () => { this.soundSwitcher.setAlpha(1); this.helpText.setText(`TONE: ${this.synth.name}`) }).setStrokeStyle(2, 0x000000, .5)
@@ -396,7 +632,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
 
           this.makeBubble(keysArray[0].x, keysArray[0].y - 10)
           keysArray[0].setAlpha(1);
-          
+          console.log(this._scales_[t.scaleIndex][0])
           this.synth.triggerAttackRelease(this._scales_[t.scaleIndex][0], this.noteLength);
         },
         t
@@ -415,7 +651,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[1].x, keysArray[1].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][1])
           keysArray[1].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][1], this.noteLength);
         },
@@ -435,7 +671,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[2].x, keysArray[2].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][2])
           keysArray[2].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][2], this.noteLength);
         },
@@ -455,7 +691,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[3].x, keysArray[3].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][3])
           keysArray[3].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][3], this.noteLength);
         },
@@ -474,7 +710,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[4].x, keysArray[4].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][4])
           keysArray[4].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][4], this.noteLength);
         },
@@ -494,7 +730,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[5].x, keysArray[5].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][5])
           keysArray[5].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][5], this.noteLength);
         },
@@ -514,7 +750,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[6].x, keysArray[6].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][6])
           keysArray[6].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][6], this.noteLength);
         },
@@ -534,7 +770,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[7].x, keysArray[7].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][7])
           keysArray[7].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][7], this.noteLength);
         },
@@ -554,7 +790,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[8].x, keysArray[8].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][8])
           keysArray[8].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][8], this.noteLength);
         },
@@ -574,7 +810,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[9].x, keysArray[9].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][9])
           keysArray[9].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][9], this.noteLength);
         },
@@ -594,7 +830,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[10].x, keysArray[10].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][10])
           keysArray[10].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][10], this.noteLength);
         },
@@ -614,7 +850,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[11].x, keysArray[11].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][11])
           keysArray[11].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][11], this.noteLength);
         },
@@ -634,7 +870,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[12].x, keysArray[12].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][12])
           keysArray[12].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][12], this.noteLength);
         },
@@ -654,7 +890,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[13].x, keysArray[13].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][13])
           keysArray[13].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][13], this.noteLength);
         },
@@ -674,7 +910,7 @@ export default class KeyBoard extends Phaser.GameObjects.Container {
         "pointerover",
         () => {
           this.makeBubble(keysArray[14].x, keysArray[14].y - 10)
-
+          console.log(this._scales_[t.scaleIndex][14])
           keysArray[14].setAlpha(1);
           this.synth.triggerAttackRelease(this._scales_[this.scaleIndex][14], this.noteLength);
         },

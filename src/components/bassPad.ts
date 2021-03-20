@@ -6,6 +6,7 @@ import DrumPad from './drumPad';
 export default class BassPad extends DrumPad {
     note: string;
     synth: MonoSynth;
+    noteText: Phaser.GameObjects.Text;
 
     constructor(scene: Phaser.Scene, x: number, y: number,  sound: string, synth?: MonoSynth, helpText?: Phaser.GameObjects.Text, player?: Player){
         super(scene,x,y, sound, player, helpText);
@@ -41,15 +42,21 @@ export default class BassPad extends DrumPad {
 
         return u
     }
+    setNote(n:string){
+        this.note = n
+        this.noteText.setText(n)
+    }
     makeSequenceControls() {
-        let xSpace = 20;
+        let xSpace = 25;
 
+        this.noteText = this.scene.add.text(this.x + 5, this.y + 14, this.note, {fontSize: '10px', color: '#000000'})
+        .setOrigin(0).setDepth(3)
         for (var i = 0; i < this.seqLength; i++) { 
             let t = this.makeSeqCircle(i, xSpace, this.scene)
             xSpace = xSpace + 15;
         }
-
-        this.onOff = this.scene.add.rectangle(this.x + 265, this.y + 15, 10, 10, generateColor(), 1)
+""
+        this.onOff = this.scene.add.rectangle(this.x + 267, this.y + 15, 10, 10, generateColor(), 1)
             .setOrigin(0).setDepth(3).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
             .on('pointerdown', () => {
                 this.onOff.setFillStyle(this.allSelected ? 0xffffff : 0x000000, 1)

@@ -1,15 +1,25 @@
 import 'phaser'
 import { generateColor } from '../helpers/PhaserHelpers';
-import { MonoSynth } from 'tone';
+import { MonoSynth, Transport } from 'tone';
 import BassPad from './bassPad';
 import { mapRanges } from '../helpers/PhaserHelpers'
 import { SavedSequence } from './drumMachine';
 import MachineMusicMan, { MLModels, ModelCheckpoints } from './mlmusician';
+import { ParenthesizedExpression } from 'typescript';
 export default class BassPlayer extends Phaser.GameObjects.Container {
 
     bg: Phaser.GameObjects.Rectangle;
     synth: MonoSynth;
-    notes: string[] = ['C2', 'D2', 'E2', 'F2', 'G2', 'A2', 'B2', 'C3'].reverse();
+    // D, E, F, G, A, B♭, and C
+    notes: string[][] = [
+    ['C2', 'D2', 'E2', 'F2', 'G2', 'A2', 'B2', 'C3'].reverse(),
+    ['E2', 'F#2', 'G#2', 'A2', 'B2', 'C#2', 'D#2', 'E3'].reverse(),
+    ['G2', 'A2', 'B2', 'C2', 'D2', 'E2', 'F#2', 'G3'].reverse(),
+    ['A2', 'B2', 'C#2', 'D2', 'E2', 'F#2', 'G#2', 'A3'].reverse(),
+    ['D2', 'E2', 'F2', 'G2', 'A2', 'A#2', 'C2', 'D3'].reverse()
+];
+    noteIndex: number = 0;
+    scales: string[] = ["Cmaj / Amin", "Emaj / C#min", "Gmaj / Emin", "Amaj / F#min", "Dmin / Fmaj"]
     helpText: Phaser.GameObjects.Text;
     pads: BassPad[] = [];
     resetButton: Phaser.GameObjects.Rectangle;
@@ -26,6 +36,12 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     aiButton: Phaser.GameObjects.Rectangle;
     generatedPattern: any[];
     mlPatternGenerator: MachineMusicMan;
+    scalesBtn: Phaser.GameObjects.Rectangle;
+    showingScales: boolean = false;
+    savedCards: {} = {};
+    savedText: {} = {};
+    muteButton: Phaser.GameObjects.Rectangle;
+    muted: boolean = false;
 
     constructor(scene: Phaser.Scene, x: number, y: number, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text) {
         super(scene, x, y);
@@ -104,12 +120,31 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
         this.helpText = helpText
     }
     makeSeqPads() {
-        let ySpace = 5;
-        this.notes.forEach((eachNote) => {
+        let ySpace = 10;
+        this.notes[this.noteIndex].forEach((eachNote) => {
             let y = new BassPad(this.scene, this.x, this.y + ySpace, eachNote, this.synth, this.helpText)
             this.pads.push(y)
             ySpace = ySpace + 15
         })
+    }
+    noteMidiToString(n: number, octive?: number) {
+        const noteName = [
+            "C",
+            "C#",
+            "D",
+            "D#",
+            "E",
+            "F",
+            "F#",
+            "G",
+            "G#",
+            "A",
+            "A#",
+            "B"
+        ];
+        const oct = octive ? octive : Math.floor(n / 12) - 1;
+        const note = n % 12;
+        return noteName[note] + oct;
     }
     attachSynth() {
         this.synth = new MonoSynth().toDestination();
@@ -161,7 +196,7 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
     }
     addVolumeControls() {
         this.volumeLine = this.scene.add.rectangle(this.x, this.y, this.width, 5, 0x000000, .25).setOrigin(0).setDepth(1)
-        this.volumeSlide = this.scene.add.ellipse(this.x - 12.5, this.y - 10, 25, 25, generateColor(), 1).setStrokeStyle(2, 0x000000, .5).setDepth(2)
+        this.volumeSlide = this.scene.add.ellipse(this.x - 12.5, this.y - 10, 25, 25, generateColor(), 1).setStrokeStyle(2, 0x000000, .5).setDepth(4)
             .setOrigin(0).setInteractive({ useHandCursor: true, draggable: true })
             .on('pointerover', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("BASS GAIN") })
             .on('pointerout', () => { this.volumeSlide.setFillStyle(generateColor(), 1); this.helpText.setText("") })
@@ -178,6 +213,12 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
                 this.helpText.setText(`BASS GAIN: ${adjustedX} db`)
                 this.synth.set({ volume: adjustedX })
             })
+    }
+    setNewScale(num:number){
+        this.noteIndex = num;
+        this.pads.forEach((ePad, i)=>{
+            ePad.setNote(this.notes[this.noteIndex][i])
+        })
     }
     makeControlSurface() {
         this.bg = this.scene.add.rectangle(this.x, this.y, 410, 150, generateColor(), .75)
@@ -310,34 +351,112 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
                 this.helpText.setText("")
             })
 
-        this.aiButtonBG = this.scene.add.rectangle(this.x + 410, this.y + 45, 35, 35, generateColor())
-            .setDepth(3).setOrigin(0).setStrokeStyle(1, 0x000000, 1)
-            
-            
-        let aiBtnShadow = this.scene.add.ellipse(this.x + 419, this.y + 53, 20, 20, 0x000000, .5)
-            .setDepth(3).setOrigin(0) 
-        this.aiButton = this.scene.add.ellipse(this.x + 417, this.y + 50, 20, 20, generateColor())
-            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(1, 0x000000, 1)
+        this.muteButton = this.scene.add.rectangle(this.x + 25, this.y + 5, 20, 10, generateColor())
+            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(2, 0x000000, 1)
             .on('pointerdown', () => {
-                this.saveSeq();
+                this.muted = !this.muted
+                this.synth.set({volume: this.muted ? -90 : 1})
+                
+
             })
             .on('pointerover', () => {
-
-                this.helpText.setText("Save Bass pattern");
-
+                this.helpText.setText("Mute / Unmute Bass Pattern")
             })
             .on('pointerout', () => {
                 this.helpText.setText("")
             })
-            // let AIText = this.scene.add.text(this.aiButton.x + 4, this.aiButton.y + 5, 'AI', {fontSize:'10px', color: '#000000'})
-            // .setDepth(3).setOrigin(0)
+
+        this.aiButtonBG = this.scene.add.rectangle(this.x + 410, this.y + 45, 35, 70, generateColor())
+            .setDepth(3).setOrigin(0).setStrokeStyle(1, 0x000000, 1)
+        this.scalesBtn = this.scene.add.rectangle(this.x + 420, this.y + 85, 15, 15, generateColor())
+            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(1, 0x000000, 1)
+            .on('pointerdown', () => {
+                
+                if(!this.showingScales){
+                    this.showingScales = true
+                    if(this.scales.length > 0){                        
+                    this.savedCards['holder'] = this.scene.add.rectangle(this.scalesBtn.x + 20, this.scalesBtn.y - 100, 100,this.scales.length * 25, generateColor(), 1)
+                        .setStrokeStyle(3, 0x000000, 1)
+                        .setDepth(3).setOrigin(0)
+                        let ySpace = 0;
+                    this.scales.forEach((eachPattern, i) => {
+                        console.log(eachPattern)
+                            this.savedCards[i] = this.scene.add.rectangle(this.scalesBtn.x + 20, (this.scalesBtn.y - 100) + ySpace, 100, 25, 0x000000, .5)
+                                .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true })
+                                .on('pointerover', () => {
+                                    this.savedCards[i].setFillStyle(0x000000, 1)
+                                })
+                                .on('pointerout', () => {
+                                    this.savedCards[i].setFillStyle(0x000000, .5)
+                                  
+                                })
+                                .on('pointerdown', () => {
+                                    this.setNewScale(i)
+                    
+                                    this.savedCards[i].setFillStyle(0xc1c1c1, 1)
+                                    this.showingScales = false
+                                    Object.keys(this.savedCards).forEach((eachCard) => {
+                                        this.savedCards[eachCard].destroy()
+                                    })
+                
+                                    Object.keys(this.savedText).forEach((eachText) => {
+                                        this.savedText[eachText].destroy()
+                                    })
+                             
+                             
+                                })
+    
+                            this.savedText[i] = this.scene.add.text(this.savedCards[i].x + 5, this.savedCards[i].y + 5, eachPattern, { fontSize: '12px', color: '#ffffff' }).setDepth(3).setOrigin(0)
+    
+                            ySpace += 25
+    
+                    })
+                    }
+
+                    
+
+                } else {
+                    this.showingScales = false
+                    
+                    Object.keys(this.savedCards).forEach((eachCard) => {
+                        this.savedCards[eachCard].destroy()
+                    })
+
+                    Object.keys(this.savedText).forEach((eachText) => {
+                        this.savedText[eachText].destroy()
+                    })
+                }
+
+                
+            })
+            .on('pointerover', () => {
+                this.helpText.setText("Change Bass Scale");
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
+
+    let aiBtnShadow = this.scene.add.ellipse(this.x + 419, this.y + 53, 20, 20, 0x000000, .5)
+            .setDepth(3).setOrigin(0)
+    this.aiButton = this.scene.add.ellipse(this.x + 417, this.y + 50, 20, 20, generateColor())
+            .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true }).setStrokeStyle(1, 0x000000, 1)
+            .on('pointerdown', () => {
+                Transport.stop()
+                this.saveSeq();
+            })
+            .on('pointerover', () => {
+                this.helpText.setText("Save Bass pattern");
+            })
+            .on('pointerout', () => {
+                this.helpText.setText("")
+            })
 
 
-        let hori1 = this.scene.add.rectangle(this.x + 77, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
+        let hori1 = this.scene.add.rectangle(this.x + 82, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
             .setDepth(2)
-        let hori2 = this.scene.add.rectangle(this.x + 137, this.y + 10, 1, 135, 0xff0000, .25).setOrigin(0)
+        let hori2 = this.scene.add.rectangle(this.x + 143, this.y + 10, 1, 135, 0xff0000, .25).setOrigin(0)
             .setDepth(2)
-        let hori3 = this.scene.add.rectangle(this.x + 197, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
+        let hori3 = this.scene.add.rectangle(this.x + 203, this.y + 15, 1, 130, 0x000000, .25).setOrigin(0)
             .setDepth(2)
     }
     clearAll() {
@@ -369,7 +488,7 @@ export default class BassPlayer extends Phaser.GameObjects.Container {
                 localStorage.setItem(`BASS_${name.substring(0, 5)}`, JSON.stringify(this.savedSeq))
             }
         } else {
-            this.helpText.setText("You must first edit the bass pattern to save it")
+            this.helpText.setText("You must first edit the bass pattern")
         }
 
 

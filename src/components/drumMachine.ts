@@ -80,7 +80,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
     sequence: boolean[] = [];
     muted: boolean = false;
     pads: DrumPad[] = [];
-    sampleIndex: number = 1
+    sampleIndex: number = 0
     swing: number = 0
     showingSavedPatterns: boolean = false
     playButton: Phaser.GameObjects.Ellipse;
@@ -260,12 +260,24 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         })
     }
     loadGeneratedLoop(savedSeq) {
+        console.log(savedSeq)
         this.helpText.setText("AI generated beat loaded")
         this.logText.setText('AI beat formatted and translated for loading')
         this.pads.forEach((eachPad, i) => {
             // console.log(savedSeq[i])
             if (savedSeq[i]) {
                 eachPad.setSequence(savedSeq[i])
+            }
+
+        });
+    }
+    loadMainSeqLoop(savedSeq) {
+        console.log(savedSeq)
+       
+        this.pads.forEach((eachPad, i) => {
+            console.log(savedSeq[i])
+            if (savedSeq[i]) {
+                eachPad.setSequence(savedSeq[i].seqData)
             }
 
         });
@@ -322,7 +334,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
         })
     }
     saveSeq() {
-
+        Transport.stop()
         let checkEdited = this.pads.map((eachPad) => {
             return {
                 passed: eachPad.getSequence().find((eachOne) => { return eachOne === true }) !== undefined
@@ -343,7 +355,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
                 localStorage.setItem(`ORIGINAL_${name.substring(0, 10)}`, JSON.stringify(this.savedSeq))
             }
         } else {
-            this.helpText.setText("You must first edit the pattern to save it")
+            this.helpText.setText("You must first edit the drum pattern")
         }
 
 
@@ -539,28 +551,28 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
 
 
 
-        this.delayControl = this.scene.add.rectangle(this.x + 50, this.y + 15, 20, 20, generateColor(), 1).setDepth(2).setOrigin(0).setStrokeStyle(1, 0x000000, .25)
-            .setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
-            .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
-                console.log(Math.floor(pointer.y - this.y) / 10)
-                let y = Math.floor(pointer.y - this.y) / 10
-                if (y < 0) {
-                    y = 0
-                }
-                if (y > 1.5) {
-                    y = 1.5
-                }
-                this.helpText.setText(y + " secs decay")
-                this.pads.forEach((eachPad) => {
-                    eachPad.setReverb(y)
-                })
-            })
-            .on('pointerout', () => {
-                this.helpText.setText('')
-            })
-            .on('pointerover', () => {
-                this.helpText.setText('Drag to add Reverb and adjust decay length')
-            })
+        // this.delayControl = this.scene.add.rectangle(this.x + 50, this.y + 15, 20, 20, generateColor(), 1).setDepth(2).setOrigin(0).setStrokeStyle(1, 0x000000, .25)
+        //     .setInteractive({ useHandCursor: true, draggable: true }).setStrokeStyle(2, 0x000000, 1)
+        //     .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+        //         console.log(Math.floor(pointer.y - this.y) / 10)
+        //         let y = Math.floor(pointer.y - this.y) / 10
+        //         if (y < 0) {
+        //             y = 0
+        //         }
+        //         if (y > 1.5) {
+        //             y = 1.5
+        //         }
+        //         this.helpText.setText(y + " secs decay")
+        //         this.pads.forEach((eachPad) => {
+        //             eachPad.setReverb(y)
+        //         })
+        //     })
+        //     .on('pointerout', () => {
+        //         this.helpText.setText('')
+        //     })
+        //     .on('pointerover', () => {
+        //         this.helpText.setText('Drag to add Reverb and adjust decay length')
+        //     })
 
 
         this.resetButton = this.scene.add.rectangle(this.x + 400, this.y + 15, 20, 20, generateColor(), 1)
@@ -596,7 +608,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
                     // console.log(savedPatterns)
                     this.savedCards['holder'] = this.scene.add.rectangle(this.loadButton.x + 200, this.loadButton.y - 15, 200, + savedPatterns.length * 25, generateColor(), 1)
                         .setStrokeStyle(3, 0x000000, 1)
-                        .setDepth(2).setOrigin(0)
+                        .setDepth(3).setOrigin(0)
                     let ySpace = -15;
                     savedPatterns.forEach((eachPattern, i) => {
                         this.savedCards[i] = this.scene.add.rectangle(this.loadButton.x + 200, this.loadButton.y + ySpace, 200, 25, 0x000000, .5)

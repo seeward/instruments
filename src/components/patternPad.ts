@@ -13,9 +13,12 @@ export default class PatternPad extends Phaser.GameObjects.Container {
     savedCards: any = {};
     savedText: any ={};
     labelText: Phaser.GameObjects.Text;
+    i: number
+    dragging: boolean;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text) {
+    constructor(scene: Phaser.Scene, x: number, y: number, drumMachine?: DrumMachine, helpText?: Phaser.GameObjects.Text, logText?: Phaser.GameObjects.Text, i?: number) {
         super(scene, x, y)
+        this.i = i
         this.drumMachine = drumMachine;
         this.helpText = helpText
         this.logText = logText
@@ -35,13 +38,38 @@ export default class PatternPad extends Phaser.GameObjects.Container {
     sendPart(){
         this.drumMachine.loadSeq(this.pattern)
     }
+    getPad(){
+        return this.pad
+    }
     clearPattern(){
         this.hasPattern = false
         this.labelText.setText('')
     }
+    setDragging() {
+        if (!this.dragging && this.pattern) {
+            this.dragging = !this.dragging;
+            sessionStorage.setItem('currentPattern', this.pattern)
+            sessionStorage.setItem('currentPatternLabel', (this.i + 1).toString())
+            // this.copy = this.copy ? this.copy : Phaser.Utils.Objects.DeepCopy(this.pad) as Phaser.GameObjects.Rectangle
+        }
+    }
+
     createPadControl(){
         this.pad = this.scene.add.rectangle(this.x,this.y, 50,50, generateColor(), .5)
-        .setOrigin(0).setDepth(2).setInteractive({useHandCursor: true}).setStrokeStyle(2, 0xffffff, .75)
+        .setOrigin(0).setDepth(4).setInteractive({useHandCursor: true, draggable: true}).setStrokeStyle(2, 0xc1c1c1, .75)
+        .on('drag', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+            this.setDragging()
+            if (this.dragging) {
+                this.pad.setX(pointer.x)
+                this.pad.setY(pointer.y)
+            }
+        })
+        .on('dragend', (pointer: any, gameObject: Phaser.GameObjects.Rectangle, dragY: number, dragX: number) => {
+            console.log(pointer.x)
+            this.dragging = false
+            this.pad.destroy()
+            this.createPadControl()
+        }) 
         .on('pointerdown', () => {
             if(!this.hasPattern){
                 
@@ -53,25 +81,23 @@ export default class PatternPad extends Phaser.GameObjects.Container {
                         
                         this.savedCards['holder'] = this.scene.add.rectangle(this.x + 20, this.y, 200, + savedPatterns.length * 25, generateColor(), 1)
                         .setStrokeStyle(3, 0x000000, 1)
-                        .setDepth(2).setOrigin(0)
+                        .setDepth(5).setOrigin(0)
                     let ySpace = 0;
                         savedPatterns.forEach((eachPattern, i) => {
                             this.savedCards[i] = this.scene.add.rectangle(this.x + 20, this.y + ySpace, 200, 25, 0x000000, .5)
-                                .setDepth(3).setOrigin(0).setInteractive({ useHandCursor: true })
+                                .setDepth(5).setOrigin(0).setInteractive({ useHandCursor: true })
                                 .on('pointerover', () => {
                                     this.savedCards[i].setFillStyle(0x000000, 1)
                                 })
                                 .on('pointerout', () => {
                                     this.savedCards[i].setFillStyle(0x000000, .5)
-                                    // t.destroy()
-                                    // tText.destroy()
                                 })
                                 .on('pointerdown', () => {
                                     this.pattern = eachPattern
                                     this.hasPattern = true
                                     this.savedCards[i].setFillStyle(0xc1c1c1, 1)
-                                    this.labelText = this.scene.add.text(this.x + 5, this.y +20, this.pattern.split('_')[1], {fontSize: '8px', color: '#000000'})
-                                    .setOrigin(0).setDepth(3).setAlpha(1)
+                                    this.labelText = this.scene.add.text(this.x + 5, this.y +5, (this.i+1).toString(), {fontSize: '24px', color: '#000000'})
+                                    .setOrigin(0).setDepth(5).setAlpha(1)
                                     Object.keys(this.savedCards).forEach((eachCard) => {
                                         this.savedCards[eachCard].destroy()
                                     })
@@ -84,7 +110,7 @@ export default class PatternPad extends Phaser.GameObjects.Container {
                                     // tText.destroy()
                                 })
     
-                            this.savedText[i] = this.scene.add.text(this.savedCards[i].x + 5, this.savedCards[i].y + 5, eachPattern.split('_')[1], { fontSize: '12px', color: '#ffffff' }).setDepth(3).setOrigin(0)
+                            this.savedText[i] = this.scene.add.text(this.savedCards[i].x + 5, this.savedCards[i].y + 5, eachPattern.split('_')[1], { fontSize: '12px', color: '#ffffff' }).setDepth(5).setOrigin(0)
     
                             ySpace += 25
     
@@ -121,6 +147,8 @@ export default class PatternPad extends Phaser.GameObjects.Container {
         .on('pointerout', () => {
             this.helpText.setText('')
         })
+
+        this.scene.physics.add.existing(this.pad)
     }
     update(){
 

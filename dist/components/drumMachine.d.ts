@@ -56,6 +56,7 @@ export default class DrumMachine extends Phaser.GameObjects.Container {
     addVolumeControls(): void;
     setDrumVolumes(vol: number): void;
     loadGeneratedLoop(savedSeq: any): void;
+    loadMainSeqLoop(savedSeq: any): void;
     muteAll(): void;
     unmuteAll(): void;
     initStarterLoops(): void;
