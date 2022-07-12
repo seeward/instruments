@@ -1,7 +1,7 @@
 {
-    "name": "phaser3-typescript-project-template",
+    "name": "ml-loopstation",
     "version": "1.0.2",
-    "description": "A Phaser 3 Project Template using Rollup and TypeScript",
+    "description": "Using Phaser, tone and Magenta",
     "main": "src/game.ts",
     "scripts": {
         "dev": "rollup --config rollup.config.dev.js",
