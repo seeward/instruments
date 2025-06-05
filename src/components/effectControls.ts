@@ -18,6 +18,24 @@ interface Connections {
     bass: string[]
 }
 
+const EFFECT_PARAM_RANGES: Record<string, [number, number]> = {
+    Delay: [0, 3],
+    Distortion: [0, 1],
+    Reverb: [0, 1],
+    Chorus: [0, 1],
+    Phaser: [100, 700],
+    Autowah: [-30, 1]
+};
+
+const EFFECT_PARAMS: Record<string, [string, string]> = {
+    Delay: ['delayTime', 'wet'],
+    Distortion: ['distortion', 'wet'],
+    Reverb: ['decay', 'wet'],
+    Chorus: ['depth', 'wet'],
+    Phaser: ['baseFrequency', 'wet'],
+    Autowah: ['sensitivity', 'wet']
+};
+
 export default class EffectControls extends Phaser.GameObjects.Container {
 
     pad0: Phaser.GameObjects.Rectangle;
@@ -107,65 +125,22 @@ export default class EffectControls extends Phaser.GameObjects.Container {
     getBetweenZeroAndOne(val, max, min) {
         return (val - min) / (max - min);
     }
-    map = (value, x1, y1, x2, y2) => (value - x1) * (y2 - x2) / (y1 - x1) + x2;
-    convertXToEffectParam1(x: number, type: string) {
-        //console.log(x)
-        switch (type) {
-            case 'Delay':
-                // delayTime in seconds 
-                return this.map(x, 13, 87, 0, 3)
-                break;
-            case 'Reverb':
-                // decay in time in seconds
-                return this.map(x, 13, 87, 0, 1)
-                break;
-            case 'Phaser':
-                // frequency between 100 and 700
-                return this.map(x, 13, 87, 100, 700)
-                break;
-            case 'Distortion':
-                // distortion level between 1 and 0
-                return this.map(x, 13, 87, 0, 1)
-                break;
-            case 'Autowah':
-                // sensitivity in dbs - between 0 and -30
-                return this.map(x, 13, 87, -30, 1)
-                break;
-            case 'Chorus':
-                // depth normal range between 0 and 1
-                return this.map(x, 13, 87, 0, 1)
-                break;
+    map = (value: number, x1: number, y1: number, x2: number, y2: number) =>
+        (value - x1) * (y2 - x2) / (y1 - x1) + x2;
+
+    convertXToEffectParam1(x: number, type: string): number {
+        const range = EFFECT_PARAM_RANGES[type];
+        if (range) {
+            return this.map(x, 13, 87, range[0], range[1]);
         }
-        return 1 / Math.floor(x) * 10
+        return this.map(x, 13, 87, 0, 1);
     }
     convertYToEffectParam2(y: number) {
         // wet between 0 and 1
         return this.map(y, 9, 40, 0, 1)
     }
-    getEffectParams(eff: string) {
-
-        switch (eff) {
-            case 'Delay':
-                return ['delayTime', 'wet']
-                break;
-            case 'Distortion':
-                return ['distortion', 'wet']
-                break;
-            case 'Reverb':
-                return ['decay', 'wet']
-                break;
-            case 'Chorus':
-                return ['depth', 'wet']
-                break
-            case 'Phaser':
-                return ['baseFrequency', 'wet']
-                break;
-            case 'Autowah':
-                return ['sensitivity', 'wet']
-                break;
-
-        }
-
+    getEffectParams(eff: string): [string, string] | undefined {
+        return EFFECT_PARAMS[eff];
     }
     addEffectControls() {
         this.effectBG = this.scene.add.rectangle(this.x + 200, this.y, 100, 100, 0xc1c1c1, 1).setOrigin(0).setDepth(1).setStrokeStyle(2, 0x000000, 1)
@@ -399,12 +374,12 @@ export default class EffectControls extends Phaser.GameObjects.Container {
        return out
     }
     muteAllPads() {
-        for (var i = 0; i < this.pads.length; i++) {
-            this[`pad${i}`].setFillStyle(0x00000, .5)
+        for (let i = 0; i < this.pads.length; i++) {
+            this[`pad${i}`].setFillStyle(0x000000, .5)
         }
     }
     unMuteAllPads() {
-        for (var i = 0; i < this.pads.length; i++) {
+        for (let i = 0; i < this.pads.length; i++) {
             this[`pad${i}`].setFillStyle(generateColor(), 1)
         }
     }
