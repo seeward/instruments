@@ -6,7 +6,9 @@ __Metronome__ - has a slider that controls the BMP and sets the global BPM in it
 
 __Keyboard__ - loads synth configurations remotely from the server. Includees distortion and delay effects. Handles live WebMidi events to the selected synth
 
-__Drum Machine__ - A controller for generic step sequencer elements
+__Drum Machine__ - A controller for generic step sequencer elements. The current Phaser app boots directly
+into the drum machine so you can load the default seed grooves and generate new beats with the built-in
+Magenta-powered AI.
 
 __Recorder__ - Basic recording of inputs - can handle mic or software inputs
 

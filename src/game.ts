@@ -1,5 +1,5 @@
 import 'phaser';
-import DashboardScene from './scenes/main'
+import DrumMachineScene from './scenes/drumMachineScene'
 import PreloadScene from './scenes/preload';
 
 const DEFAULT_WIDTH = 1280;
@@ -15,7 +15,7 @@ const config = {
     width: DEFAULT_WIDTH,
     height: DEFAULT_HEIGHT
   },
-  scene: [PreloadScene, DashboardScene],
+  scene: [PreloadScene, DrumMachineScene],
 
 };
 
