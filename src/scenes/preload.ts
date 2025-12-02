@@ -39,7 +39,7 @@ export default class PreloadScene extends Phaser.Scene {
         this.load.on('complete', function () {
             //console.log('complete');
             assetText.destroy();
-            this.scene.start('DashboardScene')
+            this.scene.start('DrumMachineScene')
         }, this);
 
 
